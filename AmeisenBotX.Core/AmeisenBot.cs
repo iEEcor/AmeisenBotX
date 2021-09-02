@@ -14,6 +14,7 @@ using AmeisenBotX.Core.Engines.Dungeon;
 using AmeisenBotX.Core.Engines.Grinding;
 using AmeisenBotX.Core.Engines.Grinding.Profiles;
 using AmeisenBotX.Core.Engines.Grinding.Profiles.Profiles.Alliance.Group;
+using AmeisenBotX.Core.Engines.Grinding.Profiles.Profiles.Horde;
 using AmeisenBotX.Core.Engines.Jobs;
 using AmeisenBotX.Core.Engines.Jobs.Profiles;
 using AmeisenBotX.Core.Engines.Jobs.Profiles.Gathering;
@@ -140,7 +141,7 @@ namespace AmeisenBotX.Core
             Bot.Dungeon = new DefaultDungeonEngine(Bot, Config);
             Bot.Jobs = new DefaultJobEngine(Bot, Config);
             Bot.Quest = new DefaultQuestEngine(Bot);
-            Bot.Grinding = new DefaultGrindingEngine(Bot, Config);
+            Bot.Grinding = new DefaultGrindEngine(Bot, Config);
 
             Bot.PathfindingHandler = new AmeisenNavigationHandler(Config.NavmeshServerIp, Config.NameshServerPort);
             Bot.Movement = new DefaultMovementEngine(Bot, Config);
@@ -503,6 +504,8 @@ namespace AmeisenBotX.Core
             GrindingProfiles = new List<IGrindingProfile>()
             {
                 new UltimateGrinding1To80(),
+                new DurotarGrindTo6(),
+                new DurotarGrindTo11(),
             };
         }
 
@@ -674,7 +677,7 @@ namespace AmeisenBotX.Core
 
         private void OnMerchantShow(long timestamp, List<string> args)
         {
-            if (Config.AutoRepair && Bot.Target.IsRepairVendor)
+            if (Config.AutoRepair && Bot.Target.IsRepairer)
             {
                 Bot.Wow.RepairAllItems();
             }
@@ -734,7 +737,7 @@ namespace AmeisenBotX.Core
                 }
 
                 // Remember Repair Vendors
-                foreach (IWowUnit unit in wowUnits.Where(e => e.IsRepairVendor))
+                foreach (IWowUnit unit in wowUnits.Where(e => e.IsRepairer))
                 {
                     Bot.Db.CachePoi(Bot.Objects.MapId, PoiType.Repair, unit.Position);
                 }

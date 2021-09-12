@@ -506,6 +506,7 @@ namespace AmeisenBotX.Core
                 new UltimateGrinding1To80(),
                 new DurotarGrindTo6(),
                 new DurotarGrindTo11(),
+                new DurotarGrindTo14()
             };
         }
 
@@ -707,7 +708,7 @@ namespace AmeisenBotX.Core
                 }
 
                 // Remember Mailboxes
-                foreach (IWowGameobject gameobject in wowGameobjects.Where(e => e.GameobjectType == WowGameobjectType.Mailbox))
+                foreach (IWowGameobject gameobject in wowGameobjects.Where(e => e.GameObjectType == WowGameObjectType.Mailbox))
                 {
                     Bot.Db.CachePoi(Bot.Objects.MapId, PoiType.Mailbox, gameobject.Position);
                 }
@@ -719,7 +720,7 @@ namespace AmeisenBotX.Core
                 }
 
                 // Remember Fishingspots and places where people fished at
-                foreach (IWowGameobject gameobject in wowGameobjects.Where(e => e.GameobjectType is WowGameobjectType.FishingHole or WowGameobjectType.FishingBobber))
+                foreach (IWowGameobject gameobject in wowGameobjects.Where(e => e.GameObjectType is WowGameObjectType.FishingHole or WowGameObjectType.FishingBobber))
                 {
                     IWowUnit originUnit = wowObjects.OfType<IWowUnit>().FirstOrDefault(e => e.Guid == gameobject.CreatedBy);
 

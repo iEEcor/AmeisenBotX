@@ -306,7 +306,13 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
 
         private IWowUnit GetEnemyFlagCarrier()
         {
-            List<IWowUnit> flagCarrierList = Bot.Objects.WowObjects.OfType<IWowUnit>().Where(e => Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Friendly && Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Neutral && !e.IsDead && e.Guid != Bot.Wow.PlayerGuid && e.Auras != null && e.Auras.Any(en => Bot.Db.GetSpellName(en.SpellId).Contains("Flag") || Bot.Db.GetSpellName(en.SpellId).Contains("flag"))).ToList();
+            List<IWowUnit> flagCarrierList = Bot.Objects.WowObjects.OfType<IWowUnit>().Where(e =>
+            Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Friendly 
+            && Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Neutral 
+            && !e.IsDead && e.Guid != Bot.Wow.PlayerGuid 
+            && e.Auras != null && e.Auras.Any(en =>
+            Bot.Db.GetSpellName(en.SpellId).Contains("Flag") || Bot.Db.GetSpellName(en.SpellId).Contains("flag")))
+            .ToList();
 
             if (flagCarrierList.Count > 0)
             {
@@ -320,11 +326,14 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
 
         private IWowObject GetEnemyFlagObject()
         {
-            WowGameobjectDisplayId targetFlag = Bot.Player.IsHorde() ? WowGameobjectDisplayId.WsgAllianceFlag : WowGameobjectDisplayId.WsgHordeFlag;
+            WowGameObjectDisplayId targetFlag = Bot.Player.IsHorde()
+                ? WowGameObjectDisplayId.WsgAllianceFlag : WowGameObjectDisplayId.WsgHordeFlag;
+
             List<IWowGameobject> flagObjectList = Bot.Objects.WowObjects
                 .OfType<IWowGameobject>() // only WowGameobjects
-                .Where(x => Enum.IsDefined(typeof(WowGameobjectDisplayId), x.DisplayId)
-                         && targetFlag == (WowGameobjectDisplayId)x.DisplayId).ToList();
+                .Where(x => Enum.IsDefined(typeof(WowGameObjectDisplayId), x.DisplayId)
+                         && targetFlag == (WowGameObjectDisplayId)x.DisplayId).ToList();
+
             if (flagObjectList.Count > 0)
             {
                 return flagObjectList[0];
@@ -337,11 +346,14 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
 
         private IWowObject GetOwnFlagObject()
         {
-            WowGameobjectDisplayId targetFlag = Bot.Player.IsHorde() ? WowGameobjectDisplayId.WsgHordeFlag : WowGameobjectDisplayId.WsgAllianceFlag;
+            WowGameObjectDisplayId targetFlag = Bot.Player.IsHorde() 
+                ? WowGameObjectDisplayId.WsgHordeFlag : WowGameObjectDisplayId.WsgAllianceFlag;
+
             List<IWowGameobject> flagObjectList = Bot.Objects.WowObjects
                 .OfType<IWowGameobject>() // only WowGameobjects
-                .Where(x => Enum.IsDefined(typeof(WowGameobjectDisplayId), x.DisplayId)
-                         && targetFlag == (WowGameobjectDisplayId)x.DisplayId).ToList();
+                .Where(x => Enum.IsDefined(typeof(WowGameObjectDisplayId), x.DisplayId)
+                         && targetFlag == (WowGameObjectDisplayId)x.DisplayId).ToList();
+
             if (flagObjectList.Count > 0)
             {
                 return flagObjectList[0];
@@ -380,7 +392,7 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
             if (Bot.Player.IsAlliance())
             {
                 IWowGameobject obj = Bot.Objects.WowObjects.OfType<IWowGameobject>()
-                                    .Where(e => e.GameobjectType == WowGameobjectType.Door && e.DisplayId == 411)
+                                    .Where(e => e.GameObjectType == WowGameObjectType.Door && e.DisplayId == 411)
                                     .FirstOrDefault();
 
                 return obj == null || obj.Bytes0 == 0;
@@ -388,7 +400,7 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
             else
             {
                 IWowGameobject obj = Bot.Objects.WowObjects.OfType<IWowGameobject>()
-                                    .Where(e => e.GameobjectType == WowGameobjectType.Door && e.DisplayId == 850)
+                                    .Where(e => e.GameObjectType == WowGameObjectType.Door && e.DisplayId == 850)
                                     .FirstOrDefault();
 
                 return obj == null || obj.Bytes0 == 0;

@@ -6,7 +6,10 @@ namespace AmeisenBotX.Common.Math
 {
     public static class BotMath
     {
-        public const float MAX_ANGLE = MathF.PI * 2.0f;
+        public const float DOUBLE_PI = MathF.PI * 2.0f;
+        public const float HALF_PI = MathF.PI / 2.0f;
+        public const float M_SQRT1_2 = 0.707106781186547524401f;
+        public const float M_SQRT2 = 1.41421356237309504880f;
 
         public static Vector3 CalculatePositionAround(Vector3 position, float rotation, float angle, float distance = 2.0f)
         {
@@ -32,10 +35,11 @@ namespace AmeisenBotX.Common.Math
             switch (angle)
             {
                 case < 0.0f:
-                    angle += MAX_ANGLE;
+                    angle += DOUBLE_PI;
                     break;
-                case > MAX_ANGLE:
-                    angle -= MAX_ANGLE;
+
+                case > DOUBLE_PI:
+                    angle -= DOUBLE_PI;
                     break;
             }
 
@@ -85,6 +89,19 @@ namespace AmeisenBotX.Common.Math
             return meanPosition / count;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float GetSlope(Vector3 startPoint, Vector3 endPoint, bool toPercentage = false)
+        {
+            //Calculate the values of the run and rise
+            float run = System.Math.Abs(endPoint.X - startPoint.X);
+            float rise = System.Math.Abs(endPoint.Y - startPoint.Y);
+
+            if (!toPercentage)
+                return rise / run;
+
+            return (rise / run) * 100;
+        }
+
         public static bool IsFacing(Vector3 position, float rotation, Vector3 targetPosition, float maxAngleDiff = 1.5f)
         {
             return MathF.Abs(GetAngleDiff(position, rotation, targetPosition)) < maxAngleDiff;
@@ -105,19 +122,6 @@ namespace AmeisenBotX.Common.Math
             }
 
             return value / (float)max * 100.0f;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float GetSlope(Vector3 startPoint, Vector3 endPoint, bool toPercentage = false)
-        {
-            //Calculate the values of the run and rise
-            float run = System.Math.Abs(endPoint.X - startPoint.X);
-            float rise = System.Math.Abs(endPoint.Y - startPoint.Y);
-
-            if (!toPercentage)
-                return rise / run;
-
-            return (rise / run) * 100;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

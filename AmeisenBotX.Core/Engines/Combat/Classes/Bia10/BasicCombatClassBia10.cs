@@ -1,14 +1,15 @@
 ﻿using AmeisenBotX.Common.Math;
 using AmeisenBotX.Common.Utils;
-using AmeisenBotX.Core.Engines.Character.Comparators;
-using AmeisenBotX.Core.Engines.Character.Talents.Objects;
 using AmeisenBotX.Core.Engines.Combat.Helpers;
 using AmeisenBotX.Core.Engines.Combat.Helpers.Aura;
 using AmeisenBotX.Core.Engines.Combat.Helpers.Targets;
 using AmeisenBotX.Core.Engines.Movement.Enums;
+using AmeisenBotX.Core.Managers.Character.Comparators;
+using AmeisenBotX.Core.Managers.Character.Talents.Objects;
 using AmeisenBotX.Logging;
 using AmeisenBotX.Logging.Enums;
 using AmeisenBotX.Wow.Objects;
+using AmeisenBotX.Wow.Objects.Constants;
 using AmeisenBotX.Wow.Objects.Enums;
 using AmeisenBotX.Wow335a.Constants;
 using System;
@@ -93,19 +94,59 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
             var target = Bot.Target;
             if (target == null) return;
 
-            /*
-            if (Bot.Player.Position.GetDistance(Bot.Target.Position) < 5.0f && !Bot.Player.IsAutoAttacking)
+            switch (IsMelee)
             {
-                if (Bot.Player.IsCasting)
+                case true when Bot.Player.Position.GetDistance(Bot.Target.Position) <= WowClickToMoveDistance.AttackGuid:
                 {
-                    Bot.Wow.StopCasting();
-                    Bot.Wow.StartAutoAttack();
-                    return;
-                }
-                Bot.Wow.StartAutoAttack();
-            }*/
+                    if (Bot.Player.IsCasting)
+                        Bot.Wow.StopCasting();
 
-            if (!IsInSpellRange(target, Shaman335a.LightningBolt)
+                    // todo: kinda buggy
+                    Bot.Wow.StopClickToMove();
+                    Bot.Movement.Reset();
+                    Bot.Wow.InteractWithUnit(target.BaseAddress);
+                    break;
+                }
+
+                case true when Bot.Player.Position.GetDistance(Bot.Target.Position) > WowClickToMoveDistance.AttackGuid:
+                    Bot.Movement.SetMovementAction(MovementAction.Move, target.Position);
+                    break;
+            }
+
+            var spellToCheck = string.Empty;
+            switch (Bot.Player.Class)
+            {
+                case WowClass.None:
+                    break;
+                case WowClass.Warrior:
+                    spellToCheck = Warrior335a.HeroicStrike;
+                    break;
+                case WowClass.Paladin:
+                    break;
+                case WowClass.Hunter:
+                    break;
+                case WowClass.Rogue:
+                    break;
+                case WowClass.Priest:
+                    spellToCheck = Priest335a.Smite;
+                    break;
+                case WowClass.Deathknight:
+                    break;
+                case WowClass.Shaman:
+                    spellToCheck = Shaman335a.LightningBolt;
+                    break;
+                case WowClass.Mage:
+                    break;
+                case WowClass.Warlock:
+                    break;
+                case WowClass.Druid:
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            if (!IsInSpellRange(target, spellToCheck)
                 || !Bot.Wow.IsInLineOfSight(Bot.Player.Position, target.Position))
                 Bot.Movement.SetMovementAction(MovementAction.Move, target.Position);
         }
@@ -253,32 +294,6 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
             return TryCastSpell(spellName, player.Guid, true);
         }
 
-        protected string SelectSpell(out ulong targetGuid)
-        {
-            if (Bot.Player.HealthPercentage < DataConstants.HealSelfPercentage
-                && ValidateSpell(Shaman335a.HealingWave, true))
-            {
-                targetGuid = Bot.Player.Guid;
-                return Shaman335a.HealingWave;
-            }
-            if (Bot.Target?.HealthPercentage >= 3
-                && IsInSpellRange(Bot.Target, Shaman335a.EarthShock)
-                && ValidateSpell(Shaman335a.EarthShock, true))
-            {
-                targetGuid = Bot.Target.Guid;
-                return Shaman335a.EarthShock;
-            }
-            if (IsInSpellRange(Bot.Target, Shaman335a.LightningBolt)
-                && ValidateSpell(Shaman335a.LightningBolt, true))
-            {
-                targetGuid = Bot.Target.Guid;
-                return Shaman335a.LightningBolt;
-            }
-
-            targetGuid = 9999999;
-            return string.Empty;
-        }
-
         public bool ValidateSpell(string spellName, bool checkGCD)
         {
             if (!Bot.Character.SpellBook.IsSpellKnown(spellName) || !Bot.Objects.IsTargetInLineOfSight)
@@ -297,12 +312,41 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
 
         private bool IsGCD() => DateTime.Now.Subtract(LastGCD).TotalSeconds < GCDTime;
 
-        protected bool TryCastSpell(string spellName, ulong guid, bool needsResource = false, double GCD = 1.5)
+        protected bool TryCastSpell(string spellName, ulong guid, bool needsResource = true, double GCD = 1.5)
         {
             var spell = Bot.Character.SpellBook.GetSpellByName(spellName);
-
             if (spell == null) return false;
-            if (needsResource && spell.Costs > Bot.Player.Mana) return false;
+
+            if (needsResource)
+            {
+                switch (Bot.Player.PowerType)
+                {
+                    case WowPowerType.Health:
+                        break;
+                    case WowPowerType.Mana:
+                        if (spell.Costs > Bot.Player.Mana) return false;
+                        break;
+                    case WowPowerType.Rage:
+                        if (spell.Costs > Bot.Player.Rage) return false;
+                        break;
+                    case WowPowerType.Focus:
+                        break;
+                    case WowPowerType.Energy:
+                        break;
+                    case WowPowerType.Happiness:
+                        break;
+                    case WowPowerType.Runes:
+                        break;
+                    case WowPowerType.RunicPower:
+                        break;
+                    case WowPowerType.Unknown:
+                        break;
+
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+
             if (!ValidateTarget(guid, out var target, out var needToSwitchTarget)) return false;
             if (target != null && !IsInSpellRange(target, spellName)) return false;
 
@@ -313,11 +357,17 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
             if (!isTargetMyself && target != null && !BotMath.IsFacing(Bot.Player.Position, Bot.Player.Rotation, target.Position))
                 Bot.Wow.FacePosition(Bot.Player.BaseAddress, Bot.Player.Position, target.Position);
 
-            if (spell.CastTime > 0)
+            switch (spell.CastTime)
             {
-                // stop pending movement if we cast something
-                Bot.Movement.PreventMovement(TimeSpan.FromMilliseconds(spell.CastTime));
-                CheckFacing(target);
+                case 0:
+                    Bot.Movement.PreventMovement(TimeSpan.FromMilliseconds(300));
+                    CheckFacing(target);
+                    GCD += 0.1; // some timing is off with casting after instant cast spells
+                    break;
+                case > 0:
+                    Bot.Movement.PreventMovement(TimeSpan.FromMilliseconds(spell.CastTime));
+                    CheckFacing(target);
+                    break;
             }
 
             if (!CastSpell(spellName, isTargetMyself)) return false;
@@ -371,10 +421,10 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
             switch (angleDiff)
             {
                 case < 0:
-                    angleDiff += BotMath.MAX_ANGLE;
+                    angleDiff += BotMath.DOUBLE_PI;
                     break;
-                case > BotMath.MAX_ANGLE:
-                    angleDiff -= BotMath.MAX_ANGLE;
+                case > BotMath.DOUBLE_PI:
+                    angleDiff -= BotMath.DOUBLE_PI;
                     break;
             }
 

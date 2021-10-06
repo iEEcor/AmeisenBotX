@@ -14,7 +14,7 @@ using System.Windows.Input;
 
 namespace AmeisenBotX
 {
-    public partial class DevToolsWindow : Window
+    public partial class DevToolsWindow
     {
         public DevToolsWindow(AmeisenBot ameisenBot)
         {
@@ -23,7 +23,7 @@ namespace AmeisenBotX
             InitializeComponent();
         }
 
-        public AmeisenBot AmeisenBot { get; private set; }
+        private AmeisenBot AmeisenBot { get; }
 
         private void ButtonEventClear_Click(object sender, RoutedEventArgs e)
         {
@@ -58,9 +58,40 @@ namespace AmeisenBotX
 
         private void ListViewNearWowObjects_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.C)
+            if (e.Key != Key.C) return;
+
+            switch ((NearWowObjectsTab)tabControlNearWowObjects.SelectedIndex)
             {
-                CopyLocalPlayerPosition(listviewNearWowObjects);
+                case NearWowObjectsTab.Unselected:
+                    break;
+                case NearWowObjectsTab.Items:
+                    CopyDataOfNearestObject(listViewItems);
+                    break;
+                case NearWowObjectsTab.Containers:
+                    CopyDataOfNearestObject(listViewContainers);
+                    break;
+                case NearWowObjectsTab.Units:
+                    CopyDataOfNearestObject(listViewUnits);
+                    break;
+                case NearWowObjectsTab.Players:
+                    CopyDataOfNearestObject(listViewPlayers);
+                    break;
+                case NearWowObjectsTab.GameObjects:
+                    CopyDataOfNearestObject(listViewGameObjects);
+                    break;
+                case NearWowObjectsTab.DynamicObjects:
+                    CopyDataOfNearestObject(listViewDynamicObjects);
+                    break;
+                case NearWowObjectsTab.Corpses:
+                    CopyDataOfNearestObject(listViewCorpses);
+                    break;
+                case NearWowObjectsTab.AiGroups:
+                    break;
+                case NearWowObjectsTab.AreaTriggers:
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
 
@@ -89,114 +120,316 @@ namespace AmeisenBotX
 
         private void RefreshActiveData()
         {
-            if (tabcontrolMain.SelectedIndex == 0)
+            switch ((MainTab)tabcontrolMain.SelectedIndex)
             {
-                listviewCachePoi.Items.Clear();
-
-                foreach (KeyValuePair<WowMapId, Dictionary<PoiType, List<Vector3>>> mapIdPair in AmeisenBot.Bot.Db.AllPointsOfInterest().OrderBy(e => e.Key))
-                {
-                    foreach (KeyValuePair<PoiType, List<Vector3>> typePair in mapIdPair.Value.OrderBy(e => e.Key))
+                case MainTab.CachePoi:
                     {
-                        listviewCachePoi.Items.Add($"{mapIdPair.Key} {typePair.Key}: {JsonSerializer.Serialize(typePair.Value)}");
-                    }
-                }
-            }
-            else if (tabcontrolMain.SelectedIndex == 1)
-            {
-                listviewCacheOre.Items.Clear();
+                        listviewCachePoi.Items.Clear();
 
-                foreach (KeyValuePair<WowMapId, Dictionary<WowOreId, List<Vector3>>> mapIdPair in AmeisenBot.Bot.Db.AllOreNodes().OrderBy(e => e.Key))
-                {
-                    foreach (KeyValuePair<WowOreId, List<Vector3>> typePair in mapIdPair.Value.OrderBy(e => e.Key))
-                    {
-                        listviewCacheOre.Items.Add($"{mapIdPair.Key} {typePair.Key}: {JsonSerializer.Serialize(typePair.Value)}");
-                    }
-                }
-            }
-            else if (tabcontrolMain.SelectedIndex == 2)
-            {
-                listviewCacheHerb.Items.Clear();
-
-                foreach (KeyValuePair<WowMapId, Dictionary<WowHerbId, List<Vector3>>> mapIdPair in AmeisenBot.Bot.Db.AllHerbNodes().OrderBy(e => e.Key))
-                {
-                    foreach (KeyValuePair<WowHerbId, List<Vector3>> typePair in mapIdPair.Value.OrderBy(e => e.Key))
-                    {
-                        listviewCacheHerb.Items.Add($"{mapIdPair.Key} {typePair.Key}: {JsonSerializer.Serialize(typePair.Value)}");
-                    }
-                }
-            }
-            else if (tabcontrolMain.SelectedIndex == 3)
-            {
-                listviewCacheNames.Items.Clear();
-
-                foreach (KeyValuePair<ulong, string> x in AmeisenBot.Bot.Db.AllNames().OrderBy(e => e.Value))
-                {
-                    listviewCacheNames.Items.Add(x);
-                }
-            }
-            else if (tabcontrolMain.SelectedIndex == 4)
-            {
-                listviewCacheReactions.Items.Clear();
-
-                foreach (KeyValuePair<int, Dictionary<int, WowUnitReaction>> mapIdPair in AmeisenBot.Bot.Db.AllReactions().OrderBy(e => e.Key))
-                {
-                    foreach (KeyValuePair<int, WowUnitReaction> typePair in mapIdPair.Value.OrderBy(e => e.Key))
-                    {
-                        listviewCacheReactions.Items.Add($"{mapIdPair.Key} {typePair.Key}: {typePair.Value}");
-                    }
-                }
-            }
-            else if (tabcontrolMain.SelectedIndex == 5)
-            {
-                listviewCacheSpellnames.Items.Clear();
-
-                foreach (KeyValuePair<int, string> x in AmeisenBot.Bot.Db.AllSpellNames().OrderBy(e => e.Value))
-                {
-                    listviewCacheSpellnames.Items.Add(x);
-                }
-            }
-            else if (tabcontrolMain.SelectedIndex == 6)
-            {
-                listviewNearWowObjects.Items.Clear();
-
-                List<(IWowObject, double)> wowObjects = new();
-
-                foreach (IWowObject x in AmeisenBot.Bot.Objects.WowObjects)
-                {
-                    if (x == null)
-                    {
+                        foreach ((WowMapId mapId, Dictionary<PoiType, List<Vector3>> dictionary) in AmeisenBot.Bot.Db.AllPointsOfInterest()
+                            .OrderBy(e => e.Key))
+                        {
+                            foreach ((PoiType poiType, List<Vector3> list) in dictionary.OrderBy(e => e.Key))
+                            {
+                                listviewCachePoi.Items.Add($"{mapId} {poiType}: {JsonSerializer.Serialize(list)}");
+                            }
+                        }
                         break;
                     }
+                case MainTab.CacheOre:
+                    {
+                        listviewCacheOre.Items.Clear();
 
-                    wowObjects.Add((x, Math.Round(x.Position.GetDistance(AmeisenBot.Bot.Player.Position), 2)));
-                }
+                        foreach ((WowMapId mapId, Dictionary<WowOreId, List<Vector3>> dictionary) in AmeisenBot.Bot.Db.AllOreNodes()
+                            .OrderBy(e => e.Key))
+                        {
+                            foreach ((WowOreId oreId, List<Vector3> list) in dictionary.OrderBy(e => e.Key))
+                            {
+                                listviewCacheOre.Items.Add($"{mapId} {oreId}: {JsonSerializer.Serialize(list)}");
+                            }
+                        }
+                        break;
+                    }
+                case MainTab.CacheHerb:
+                    {
+                        listviewCacheHerb.Items.Clear();
 
-                foreach ((IWowObject wowObject, double distanceTo) in wowObjects.OrderBy(e => e.Item2))
-                {
-                    listviewNearWowObjects.Items.Add($"Type: {wowObject.Type} Guid: {wowObject.Guid} Pos: [{wowObject.Position}] DistanceTo: {distanceTo}");
-                }
+                        foreach ((WowMapId mapId, Dictionary<WowHerbId, List<Vector3>> dictionary) in AmeisenBot.Bot.Db.AllHerbNodes()
+                            .OrderBy(e => e.Key))
+                        {
+                            foreach ((WowHerbId herbId, List<Vector3> list) in dictionary.OrderBy(e => e.Key))
+                            {
+                                listviewCacheHerb.Items.Add($"{mapId} {herbId}: {JsonSerializer.Serialize(list)}");
+                            }
+                        }
+                        break;
+                    }
+                case MainTab.CacheNames:
+                    {
+                        listviewCacheNames.Items.Clear();
+
+                        foreach (KeyValuePair<ulong, string> x in AmeisenBot.Bot.Db.AllNames()
+                            .OrderBy(e => e.Value))
+                        {
+                            listviewCacheNames.Items.Add(x);
+                        }
+                        break;
+                    }
+                case MainTab.CacheReactions:
+                    {
+                        listviewCacheReactions.Items.Clear();
+
+                        // todo: resolve ... name = mapIdPair implies enum WowMapId not int
+                        foreach (KeyValuePair<int, Dictionary<int, WowUnitReaction>> mapIdPair in AmeisenBot.Bot.Db.AllReactions()
+                            .OrderBy(e => e.Key))
+                        {
+                            // todo: same ... typePair as enum? or intPair as int?
+                            foreach (KeyValuePair<int, WowUnitReaction> typePair in mapIdPair.Value
+                                .OrderBy(e => e.Key))
+                            {
+                                listviewCacheReactions.Items.Add($"{mapIdPair.Key} {typePair.Key}: {typePair.Value}");
+                            }
+                        }
+                        break;
+                    }
+                case MainTab.CacheSpellNames:
+                    {
+                        listviewCacheSpellnames.Items.Clear();
+
+                        foreach (KeyValuePair<int, string> keyValuePair in AmeisenBot.Bot.Db.AllSpellNames()
+                            .OrderBy(kvp => kvp.Value))
+                        {
+                            listviewCacheSpellnames.Items.Add(keyValuePair);
+                        }
+                        break;
+                    }
+                case MainTab.NearWowObjects:
+                    switch ((NearWowObjectsTab)tabControlNearWowObjects.SelectedIndex)
+                    {
+                        case NearWowObjectsTab.Unselected:
+                            break;
+                        case NearWowObjectsTab.Items:
+                            {
+                                listViewItems.Items.Clear();
+
+                                List<(IWowObject, double)> wowObjects = AmeisenBot.Bot.Objects.WowObjects
+                                    .TakeWhile(wowObject => wowObject != null)
+                                    .Select(wowObject => (wowObject, Math.Round(wowObject.Position.GetDistance(AmeisenBot.Bot.Player.Position), 2)))
+                                    .ToList();
+
+                                foreach ((IWowObject wowObject, double distanceTo) in wowObjects
+                                    .Where(e => e.Item1.Type == WowObjectType.Item)
+                                    .OrderBy(e => e.Item2))
+                                {
+                                    listViewItems.Items.Add($"EntryId: {wowObject.EntryId} Guid: {wowObject.Guid} Pos: [{wowObject.Position}] Scale: {wowObject.Scale} Distance: {distanceTo}");
+                                }
+                                break;
+                            }
+                        case NearWowObjectsTab.Containers:
+                            {
+                                listViewContainers.Items.Clear();
+
+                                List<(IWowObject, double)> wowObjects = AmeisenBot.Bot.Objects.WowObjects
+                                    .TakeWhile(wowObject => wowObject != null)
+                                    .Select(wowObject => (wowObject, Math.Round(wowObject.Position.GetDistance(AmeisenBot.Bot.Player.Position), 2)))
+                                    .ToList();
+
+                                foreach ((IWowObject wowObject, double distanceTo) in wowObjects
+                                    .Where(e => e.Item1.Type == WowObjectType.Container)
+                                    .OrderBy(e => e.Item2))
+                                {
+                                    listViewContainers.Items.Add($"EntryId: {wowObject.EntryId} Guid: {wowObject.Guid} Pos: [{wowObject.Position}] Scale: {wowObject.Scale} Distance: {distanceTo}");
+                                }
+                                break;
+                            }
+                        case NearWowObjectsTab.Units:
+                            {
+                                listViewUnits.Items.Clear();
+
+                                List<(IWowObject, double)> wowObjects = AmeisenBot.Bot.Objects.WowObjects
+                                    .TakeWhile(wowObject => wowObject != null)
+                                    .Select(wowObject => (wowObject, Math.Round(wowObject.Position.GetDistance(AmeisenBot.Bot.Player.Position), 2)))
+                                    .ToList();
+
+                                foreach ((IWowObject wowObject, double distanceTo) in wowObjects
+                                    .Where(e => e.Item1.Type == WowObjectType.Unit)
+                                    .OrderBy(e => e.Item2))
+                                {
+                                    listViewUnits.Items.Add($"EntryId: {wowObject.EntryId} Guid: {wowObject.Guid} Pos: [{wowObject.Position}] Scale: {wowObject.Scale} Distance: {distanceTo}");
+                                }
+                                break;
+                            }
+                        case NearWowObjectsTab.Players:
+                            {
+                                listViewPlayers.Items.Clear();
+
+                                List<(IWowObject, double)> wowObjects = AmeisenBot.Bot.Objects.WowObjects
+                                    .TakeWhile(wowObject => wowObject != null)
+                                    .Select(wowObject => (wowObject, Math.Round(wowObject.Position.GetDistance(AmeisenBot.Bot.Player.Position), 2)))
+                                    .ToList();
+
+                                foreach ((IWowObject wowObject, double distanceTo) in wowObjects
+                                    .Where(e => e.Item1.Type == WowObjectType.Player)
+                                    .OrderBy(e => e.Item2))
+                                {
+                                    listViewPlayers.Items.Add($"EntryId: {wowObject.EntryId} Guid: {wowObject.Guid} Pos: [{wowObject.Position}] Scale: {wowObject.Scale} Distance: {distanceTo}");
+                                }
+                                break;
+                            }
+                        case NearWowObjectsTab.GameObjects:
+                            {
+                                listViewGameObjects.Items.Clear();
+
+                                List<(IWowObject, double)> wowObjects = AmeisenBot.Bot.Objects.WowObjects
+                                    .TakeWhile(wowObject => wowObject != null)
+                                    .Select(wowObject => (wowObject, Math.Round(wowObject.Position.GetDistance(AmeisenBot.Bot.Player.Position), 2)))
+                                    .ToList();
+
+                                foreach ((IWowObject wowObject, double distanceTo) in wowObjects
+                                    .Where(e => e.Item1.Type == WowObjectType.GameObject)
+                                    .OrderBy(e => e.Item2))
+                                {
+                                    listViewGameObjects.Items.Add($"EntryId: {wowObject.EntryId} Guid: {wowObject.Guid} Pos: [{wowObject.Position}] Scale: {wowObject.Scale} Distance: {distanceTo}");
+                                }
+                                break;
+                            }
+                        case NearWowObjectsTab.DynamicObjects:
+                            {
+                                listViewDynamicObjects.Items.Clear();
+
+                                List<(IWowObject, double)> wowObjects = AmeisenBot.Bot.Objects.WowObjects
+                                    .TakeWhile(wowObject => wowObject != null)
+                                    .Select(wowObject => (wowObject, Math.Round(wowObject.Position.GetDistance(AmeisenBot.Bot.Player.Position), 2)))
+                                    .ToList();
+
+                                foreach ((IWowObject wowObject, double distanceTo) in wowObjects
+                                    .Where(e => e.Item1.Type == WowObjectType.DynamicObject)
+                                    .OrderBy(e => e.Item2))
+                                {
+                                    listViewDynamicObjects.Items.Add($"EntryId: {wowObject.EntryId} Guid: {wowObject.Guid} Pos: [{wowObject.Position}] Scale: {wowObject.Scale} Distance: {distanceTo}");
+                                }
+                                break;
+                            }
+                        case NearWowObjectsTab.Corpses:
+                            {
+                                listViewCorpses.Items.Clear();
+
+                                List<(IWowObject, double)> wowObjects = AmeisenBot.Bot.Objects.WowObjects
+                                    .TakeWhile(wowObject => wowObject != null)
+                                    .Select(wowObject => (wowObject, Math.Round(wowObject.Position.GetDistance(AmeisenBot.Bot.Player.Position), 2)))
+                                    .ToList();
+
+                                foreach ((IWowObject wowObject, double distanceTo) in wowObjects
+                                    .Where(e => e.Item1.Type == WowObjectType.Corpse)
+                                    .OrderBy(e => e.Item2))
+                                {
+                                    listViewCorpses.Items.Add($"EntryId: {wowObject.EntryId} Guid: {wowObject.Guid} Pos: [{wowObject.Position}] Scale: {wowObject.Scale} Distance: {distanceTo}");
+                                }
+                                break;
+                            }
+                        case NearWowObjectsTab.AiGroups:
+                            {
+                                listViewAiGroups.Items.Clear();
+
+                                List<(IWowObject, double)> wowObjects = AmeisenBot.Bot.Objects.WowObjects
+                                    .TakeWhile(wowObject => wowObject != null)
+                                    .Select(wowObject => (wowObject, Math.Round(wowObject.Position.GetDistance(AmeisenBot.Bot.Player.Position), 2)))
+                                    .ToList();
+
+                                foreach ((IWowObject wowObject, double distanceTo) in wowObjects
+                                    .Where(e => e.Item1.Type == WowObjectType.AiGroup)
+                                    .OrderBy(e => e.Item2))
+                                {
+                                    listViewAiGroups.Items.Add($"EntryId: {wowObject.EntryId} Guid: {wowObject.Guid} Pos: [{wowObject.Position}] Scale: {wowObject.Scale} Distance: {distanceTo}");
+                                }
+                                break;
+                            }
+                        case NearWowObjectsTab.AreaTriggers:
+                            {
+                                listViewAreaTriggers.Items.Clear();
+
+                                List<(IWowObject, double)> wowObjects = AmeisenBot.Bot.Objects.WowObjects
+                                    .TakeWhile(wowObject => wowObject != null)
+                                    .Select(wowObject => (wowObject, Math.Round(wowObject.Position.GetDistance(AmeisenBot.Bot.Player.Position), 2)))
+                                    .ToList();
+
+                                foreach ((IWowObject wowObject, double distanceTo) in wowObjects
+                                    .Where(e => e.Item1.Type == WowObjectType.AiGroup)
+                                    .OrderBy(e => e.Item2))
+                                {
+                                    listViewAreaTriggers.Items.Add($"EntryId: {wowObject.EntryId} Guid: {wowObject.Guid} Pos: [{wowObject.Position}] Scale: {wowObject.Scale} Distance: {distanceTo}");
+                                }
+                                break;
+                            }
+
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+                    break;
+
+                case MainTab.Lua:
+                    break;
+                case MainTab.Events:
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
 
-        private void CopyLocalPlayerPosition(ListView list)
+        private static void CopyDataOfNearestObject(ItemsControl listView)
         {
-            ItemCollection listItems = list.Items;
-            if (listItems.Count <= 0) { return; }
-            object playerData = listItems[0];
-            if (playerData == null) { return; }
+            ItemCollection listItems = listView.Items;
+            if (listItems.Count == 0) return;
 
-            string[] split = playerData.ToString().Split("[", 2);
-            string pos = split[1].Replace("] DistanceTo: 0", string.Empty);
-            string[] posComponents = pos.Split(", ");
+            object firstItem = listItems[0];
+            if (firstItem == null) return;
+
+            string dataString = firstItem.ToString();
+            if (string.IsNullOrEmpty(dataString) || string.IsNullOrWhiteSpace(dataString))
+                return;
+
+            string[] splitByGuid = dataString.Split(" Guid:", 2);
+            string entryId = splitByGuid[0].Replace("EntryId: ", string.Empty);
+
+            string[] splitByPos = dataString.Split("Pos: [", 2);
+            string[] splitByBrace = splitByPos[1].Split("]", 2);
+
+            string[] posComponents = splitByBrace[0].Split(", ");
             string[] cleanComponents = { "", "", "" };
 
             for (int i = 0; i < posComponents.Length; i++)
-            {
                 cleanComponents[i] = posComponents[i].Split(".")[0];
-            }
 
-            string finalPosStr = cleanComponents[0] + ", " + cleanComponents[1] + ", " + cleanComponents[2];
-            Clipboard.SetDataObject(finalPosStr);
+            string finalPosStr = "new Vector3(" + cleanComponents[0] + ", " + cleanComponents[1] + ", " + cleanComponents[2] + ")";
+            Clipboard.SetDataObject(entryId + ", " + finalPosStr);
+        }
+
+        private enum MainTab
+        {
+            CachePoi = 0,
+            CacheOre,
+            CacheHerb,
+            CacheNames,
+            CacheReactions,
+            CacheSpellNames,
+            NearWowObjects,
+            Lua,
+            Events
+        }
+
+        private enum NearWowObjectsTab
+        {
+            Unselected = -1,
+            Items,
+            Containers,
+            Units,
+            Players,
+            GameObjects,
+            DynamicObjects,
+            Corpses,
+            AiGroups,
+            AreaTriggers
         }
     }
 }

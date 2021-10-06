@@ -1,6 +1,6 @@
 ﻿using AmeisenBotX.Core.Engines.Grinding.Objects;
+using AmeisenBotX.Core.Objects;
 using System.Collections.Generic;
-using AmeisenBotX.Core.Engines.Npc;
 
 namespace AmeisenBotX.Core.Engines.Grinding.Profiles
 {
@@ -8,9 +8,9 @@ namespace AmeisenBotX.Core.Engines.Grinding.Profiles
     {
         bool RandomizeSpots { get; }
 
-        List<Vendor> Vendors { get; }
+        List<Npc> NpcsOfInterest { get; }
 
-        List<Trainer> Trainers { get; }
+        List<InteractableObject> ObjectsOfInterest { get; }
 
         List<GrindingSpot> Spots { get; }
     }

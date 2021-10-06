@@ -1,6 +1,6 @@
-﻿using AmeisenBotX.Core.Engines.Character.Comparators;
-using AmeisenBotX.Core.Engines.Character.Talents.Objects;
-using AmeisenBotX.Core.Logic.Utils.Auras.Objects;
+﻿using AmeisenBotX.Core.Logic.Utils.Auras.Objects;
+using AmeisenBotX.Core.Managers.Character.Comparators;
+using AmeisenBotX.Core.Managers.Character.Talents.Objects;
 using AmeisenBotX.Wow.Objects;
 using AmeisenBotX.Wow.Objects.Enums;
 using AmeisenBotX.Wow335a.Constants;
@@ -18,7 +18,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
 
             SpellUsageHealDict = new Dictionary<int, string>()
             {
-                { 0, Priest335a.Heal },
+                { 0, Priest335a.LesserHeal },
                 { 100, Priest335a.FlashHeal },
                 { 5000, Priest335a.GreaterHeal },
             };

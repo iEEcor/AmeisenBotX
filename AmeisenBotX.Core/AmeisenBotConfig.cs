@@ -11,6 +11,12 @@ namespace AmeisenBotX.Core
     {
         public int AntiAfkMs { get; set; } = 1000;
 
+        public bool AoeDetectionAvoid { get; set; } = false;
+
+        public float AoeDetectionExtends { get; set; } = 1.0f;
+
+        public bool AoeDetectionIncludePlayers { get; set; } = false;
+
         public bool AutoAcceptQuests { get; set; } = true;
 
         public bool AutoChangeRealmlist { get; set; } = true;
@@ -18,8 +24,6 @@ namespace AmeisenBotX.Core
         public bool AutocloseWow { get; set; } = true;
 
         public bool AutoDisableRender { get; set; } = false;
-
-        public bool AutoDodgeAoeSpells { get; set; } = false;
 
         public bool AutojoinBg { get; set; } = true;
 
@@ -61,11 +65,19 @@ namespace AmeisenBotX.Core
 
         public string CustomCombatClassFile { get; set; } = string.Empty;
 
-        public double DrinkUntilPercent { get; set; } = 75;
+        public double DrinkStartPercent { get; set; } = 65.0;
+
+        public double DrinkUntilPercent { get; set; } = 85.0;
 
         public bool DungeonUsePartyMode { get; set; } = false;
 
-        public double EatUntilPercent { get; set; } = 75;
+        public bool EatDrinkAbortFollowParty { get; set; } = true;
+
+        public float EatDrinkAbortFollowPartyDistance { get; set; } = 25.0f;
+
+        public double EatStartPercent { get; set; } = 65.0;
+
+        public double EatUntilPercent { get; set; } = 85.0;
 
         public int EventPullMs { get; set; } = 500;
 

@@ -63,7 +63,6 @@ namespace AmeisenBotX
             NotificationTransparentBrush.Freeze();
 
             LabelUpdateEvent = new(TimeSpan.FromSeconds(1));
-            NotificationEvent = new(TimeSpan.FromSeconds(1));
 
             RenderState = true;
 
@@ -117,8 +116,6 @@ namespace AmeisenBotX
 
         private SolidColorBrush NotificationBrush { get; }
 
-        private TimegatedEvent NotificationEvent { get; }
-
         private SolidColorBrush NotificationGmBrush { get; }
 
         private long NotificationLastTimestamp { get; set; }
@@ -165,14 +162,9 @@ namespace AmeisenBotX
         {
             if (!string.IsNullOrWhiteSpace(configPath))
             {
-                if (File.Exists(configPath))
-                {
-                    config = JsonSerializer.Deserialize<AmeisenBotConfig>(File.ReadAllText(configPath), new() { AllowTrailingCommas = true, NumberHandling = JsonNumberHandling.AllowReadingFromString });
-                }
-                else
-                {
-                    config = new();
-                }
+                config = File.Exists(configPath)
+                    ? JsonSerializer.Deserialize<AmeisenBotConfig>(File.ReadAllText(configPath), new() { AllowTrailingCommas = true, NumberHandling = JsonNumberHandling.AllowReadingFromString })
+                    : new();
 
                 config.Path = configPath;
                 return true;
@@ -274,8 +266,12 @@ namespace AmeisenBotX
 
         private void ButtonToggleRendering_Click(object sender, RoutedEventArgs e)
         {
-            RenderState = !RenderState;
-            AmeisenBot.Bot.Wow.SetRenderState(RenderState);
+            // float threat = AmeisenBot.Bot.Threat.Get(AmeisenBot.Bot.Player.Position);
+
+            if (AmeisenBot.Bot.Target != null)
+            {
+                bool inLos = AmeisenBot.Bot.Wow.IsInLineOfSight(AmeisenBot.Bot.Player.Position, AmeisenBot.Bot.Target.Position);
+            }
         }
 
         private void ComboboxStateOverride_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -576,6 +572,8 @@ namespace AmeisenBotX
 
             comboboxStateOverride.Items.Add(BotMode.None);
             comboboxStateOverride.Items.Add(BotMode.Grinding);
+            comboboxStateOverride.Items.Add(BotMode.Jobs);
+            comboboxStateOverride.Items.Add(BotMode.PvP);
             comboboxStateOverride.Items.Add(BotMode.Questing);
             comboboxStateOverride.Items.Add(BotMode.Testing);
 
@@ -631,6 +629,7 @@ namespace AmeisenBotX
 
                 StateConfigWindows = new()
                 {
+                    { BotMode.Jobs, new StateJobConfigWindow(AmeisenBot, AmeisenBot.Config) },
                     { BotMode.Grinding, new StateGrindingConfigWindow(AmeisenBot, AmeisenBot.Config) },
                     { BotMode.Questing, new StateQuestingConfigWindow(AmeisenBot, AmeisenBot.Config) },
                 };

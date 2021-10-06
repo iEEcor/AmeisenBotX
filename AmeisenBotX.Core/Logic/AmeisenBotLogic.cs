@@ -3,14 +3,15 @@ using AmeisenBotX.BehaviorTree.Enums;
 using AmeisenBotX.BehaviorTree.Objects;
 using AmeisenBotX.Common.Math;
 using AmeisenBotX.Common.Utils;
-using AmeisenBotX.Core.Engines.Character.Inventory.Objects;
 using AmeisenBotX.Core.Engines.Movement.Enums;
-using AmeisenBotX.Core.Engines.Npc;
 using AmeisenBotX.Core.Logic.Enums;
 using AmeisenBotX.Core.Logic.Idle;
 using AmeisenBotX.Core.Logic.Idle.Actions;
 using AmeisenBotX.Core.Logic.Routines;
 using AmeisenBotX.Core.Logic.StaticDeathRoutes;
+using AmeisenBotX.Core.Managers.Character.Inventory.Objects;
+using AmeisenBotX.Core.Objects;
+using AmeisenBotX.Core.Objects.Enums;
 using AmeisenBotX.Logging;
 using AmeisenBotX.Logging.Enums;
 using AmeisenBotX.Memory.Win32;
@@ -41,6 +42,7 @@ namespace AmeisenBotX.Core.Logic
             Random = new();
 
             Mode = BotMode.None;
+            // Mode = BotMode.PvP;
 
             IdleActionManager = new(new List<IIdleAction>()
             {
@@ -81,13 +83,13 @@ namespace AmeisenBotX.Core.Logic
                 new Leaf(RunToCorpseAndRetrieveIt)
             );
 
-            INode openworldCombatNode = new Selector
+            INode combatNode = new Selector
             (
                 () => Bot.CombatClass == null,
                 // start autoattacking if we have no combat class loaded
                 new Selector
                 (
-                    () => !Bot.Player.IsInMeleeRange(Bot.Target),
+                    () => Bot.Target != null && !Bot.Player.IsInMeleeRange(Bot.Target),
                     new Leaf(() => MoveToPosition(Bot.Target.Position)),
                     new Selector
                     (
@@ -100,9 +102,10 @@ namespace AmeisenBotX.Core.Logic
                 // run combat class logic
                 new Selector
                 (
-                    // combatclass handles movement itself or has no target
-                    () => Bot.CombatClass.HandlesMovement || Bot.Target == null,
-                    new Leaf(() => { Bot.CombatClass.Execute(); return BtStatus.Success; }),
+                    // combatclass handles movement itself or has no target or tactic handle the movement
+                    () => Bot.CombatClass.HandlesMovement || Bot.Target == null || Bot.Tactic.PreventMovement,
+                    new Leaf(() => { Bot.CombatClass?.Execute(); return BtStatus.Success; }),
+                    // default combat movement logic
                     new Selector
                     (
                         // check whether we need to move
@@ -110,8 +113,8 @@ namespace AmeisenBotX.Core.Logic
                         new Leaf(() => MoveToPosition(Bot.Target.Position)),
                         new Waterfall
                         (
-                            // fallback, run to the target unit
-                            new Leaf(() => { Bot.CombatClass.Execute(); return BtStatus.Success; }),
+                            // unsupported role
+                            new Leaf(() => { Bot.CombatClass?.Execute(); return BtStatus.Success; }),
                             // dps logic
                             (
                                 () => Bot.CombatClass.Role == WowRole.Dps,
@@ -122,13 +125,13 @@ namespace AmeisenBotX.Core.Logic
                                     (
                                         () => !Bot.Player.IsInMeleeRange(Bot.Target),
                                         new Leaf(() => MoveToPosition(Bot.Target.Position)),
-                                        new Leaf(() => { Bot.CombatClass.Execute(); return BtStatus.Success; })
+                                        new Leaf(() => { Bot.CombatClass?.Execute(); return BtStatus.Success; })
                                     ),
                                     new Selector
                                     (
                                         () => Bot.Player.DistanceTo(Bot.Target) > 26.5f + Bot.Target.CombatReach,
                                         new Leaf(() => MoveToPosition(Bot.Target.Position)),
-                                        new Leaf(() => { Bot.CombatClass.Execute(); return BtStatus.Success; })
+                                        new Leaf(() => { Bot.CombatClass?.Execute(); return BtStatus.Success; })
                                     )
                                 )
                             ),
@@ -139,7 +142,7 @@ namespace AmeisenBotX.Core.Logic
                                 (
                                     () => !Bot.Player.IsInMeleeRange(Bot.Target),
                                     new Leaf(() => MoveToPosition(Bot.Target.Position)),
-                                    new Leaf(() => { Bot.CombatClass.Execute(); return BtStatus.Success; })
+                                    new Leaf(() => { Bot.CombatClass?.Execute(); return BtStatus.Success; })
                                 )
                             ),
                             // heal logic
@@ -149,7 +152,7 @@ namespace AmeisenBotX.Core.Logic
                                 (
                                     () => Bot.Player.DistanceTo(Bot.Target) > 23.5f + Bot.Target.CombatReach,
                                     new Leaf(() => MoveToPosition(Bot.Target.Position)),
-                                    new Leaf(() => { Bot.CombatClass.Execute(); return BtStatus.Success; })
+                                    new Leaf(() => { Bot.CombatClass?.Execute(); return BtStatus.Success; })
                                 )
                             )
                         )
@@ -157,13 +160,25 @@ namespace AmeisenBotX.Core.Logic
                 )
             );
 
+            INode jobsNode = new Waterfall
+            (
+                new Leaf(() => { Bot.Jobs.Execute(); return BtStatus.Success; }),
+                (() => Bot.Player.IsDead, new Leaf(Dead)),
+                (() => Bot.Player.IsGhost, openworldGhostNode),
+                (() => !Bot.Player.IsMounted && NeedToFight(), combatNode),
+                (NeedToRepairOrSell, new Leaf(SpeakWithMerchant)),
+                // (NeedToLoot, new Leaf(LootNearUnits)),
+                (NeedToEat, new Leaf(Eat))
+            );
+
             INode grindingNode = new Waterfall
             (
                 new Leaf(() => { Bot.Grinding.Execute(); return BtStatus.Success; }),
                 (() => Bot.Player.IsDead, new Leaf(Dead)),
                 (() => Bot.Player.IsGhost, openworldGhostNode),
-                (NeedToFight, openworldCombatNode),
+                (NeedToFight, combatNode),
                 (NeedToRepairOrSell, new Leaf(SpeakWithMerchant)),
+                (NeedToTrainSpells, new Leaf(SpeakWithClassTrainer)),
                 (NeedToLoot, new Leaf(LootNearUnits)),
                 (NeedToEat, new Leaf(Eat))
             );
@@ -173,7 +188,18 @@ namespace AmeisenBotX.Core.Logic
                 new Leaf(() => { Bot.Quest.Execute(); return BtStatus.Success; }),
                 (() => Bot.Player.IsDead, new Leaf(Dead)),
                 (() => Bot.Player.IsGhost, openworldGhostNode),
-                (NeedToFight, openworldCombatNode),
+                (NeedToFight, combatNode),
+                (NeedToRepairOrSell, new Leaf(SpeakWithMerchant)),
+                (NeedToLoot, new Leaf(LootNearUnits)),
+                (NeedToEat, new Leaf(Eat))
+            );
+
+            INode pvpNode = new Waterfall
+            (
+                new Leaf(() => { Bot.Pvp.Execute(); return BtStatus.Success; }),
+                (() => Bot.Player.IsDead, new Leaf(Dead)),
+                (() => Bot.Player.IsGhost, openworldGhostNode),
+                (NeedToFight, combatNode),
                 (NeedToRepairOrSell, new Leaf(SpeakWithMerchant)),
                 (NeedToLoot, new Leaf(LootNearUnits)),
                 (NeedToEat, new Leaf(Eat))
@@ -193,7 +219,7 @@ namespace AmeisenBotX.Core.Logic
                 // handle main open world states
                 (() => Bot.Player.IsDead, new Leaf(Dead)),
                 (() => Bot.Player.IsGhost, openworldGhostNode),
-                (NeedToFight, openworldCombatNode),
+                (NeedToFight, combatNode),
                 (NeedToRepairOrSell, new Leaf(SpeakWithMerchant)),
                 (NeedToLoot, new Leaf(LootNearUnits)),
                 (NeedToEat, new Leaf(Eat)),
@@ -203,13 +229,16 @@ namespace AmeisenBotX.Core.Logic
 
             // SPECIAL ENVIRONMENTS -----------------------------
 
-            INode battlegroundNode = new Selector
+            INode battlegroundNode = new Waterfall
             (
-                IsBattlegroundFinished,
+                new Leaf(() => { Bot.Battleground.Execute(); return BtStatus.Success; }),
                 // leave battleground once it is finished
-                new Leaf(() => { Bot.Wow.LeaveBattleground(); Bot.Battleground.Leave(); return BtStatus.Success; }),
-                // TODO: run bg engine here
-                new Leaf(() => { Bot.Battleground.Execute(); return BtStatus.Success; })
+                (IsBattlegroundFinished, new Leaf(() => { Bot.Wow.LeaveBattleground(); Bot.Battleground.Reset(); return BtStatus.Success; })),
+                // only handle dead state here, ghost should only be a problem
+                // on AV as the graveyard might get lost while we are a ghost
+                (() => Bot.Player.IsDead, new Leaf(Dead)),
+                (NeedToFight, combatNode),
+                (NeedToEat, new Leaf(Eat))
             );
 
             INode dungeonNode = new Waterfall
@@ -222,8 +251,15 @@ namespace AmeisenBotX.Core.Logic
                     new Leaf(() => { Bot.Dungeon.Execute(); return BtStatus.Success; })
                 ),
                 (() => Bot.Player.IsDead, new Leaf(DeadDungeon)),
-                //TODO: implement specialized dungeon combat logic
-                (NeedToFight, openworldCombatNode),
+                (
+                    NeedToFight,
+                    new Selector
+                    (
+                        NeedToFollowTactic,
+                        new Leaf(() => { return BtStatus.Success; }),
+                        combatNode
+                    )
+                ),
                 (NeedToLoot, new Leaf(LootNearUnits)),
                 (NeedToEat, new Leaf(Eat))
             );
@@ -233,12 +269,19 @@ namespace AmeisenBotX.Core.Logic
                 new Selector
                 (
                     () => Config.DungeonUsePartyMode && NeedToFollow(),
-                    // just follow when we use party mode in dungeon
+                    // just follow when we use party mode in raid
                     new Leaf(Follow),
                     new Leaf(() => { Bot.Dungeon.Execute(); return BtStatus.Success; })
                 ),
-                //TODO: implement specialized raid combat logic
-                (NeedToFight, openworldCombatNode),
+                (
+                    NeedToFight,
+                    new Selector
+                    (
+                        NeedToFollowTactic,
+                        new Leaf(() => { return BtStatus.Success; }),
+                        combatNode
+                    )
+                ),
                 (NeedToLoot, new Leaf(LootNearUnits)),
                 (NeedToEat, new Leaf(Eat))
             );
@@ -267,12 +310,19 @@ namespace AmeisenBotX.Core.Logic
                             (() => Bot.Objects.MapId.IsRaidMap(), raidNode),
                             // handle open world modes
                             (() => Mode == BotMode.Grinding, grindingNode),
+                            (() => Mode == BotMode.Jobs, jobsNode),
                             (() => Mode == BotMode.Questing, questingNode),
+                            (() => Mode == BotMode.PvP, pvpNode),
                             (() => Mode == BotMode.Testing, testingNode)
                         )
                     ),
                     // we are most likely in the loading screen or player/objects are null
-                    new Leaf(() => BtStatus.Success)
+                    new Leaf(() =>
+                    {
+                        // make sure we dont run after we leave the loadingscreen
+                        Bot.Movement.StopMovement();
+                        return BtStatus.Success;
+                    })
                 )
             );
 
@@ -315,6 +365,8 @@ namespace AmeisenBotX.Core.Logic
         private AmeisenBotInterfaces Bot { get; }
 
         private TimegatedEvent CharacterUpdateEvent { get; }
+
+        private IWowUnit ClassTrainer { get; set; }
 
         private AmeisenBotConfig Config { get; }
 
@@ -365,6 +417,23 @@ namespace AmeisenBotX.Core.Logic
         private Queue<ulong> UnitsToLoot { get; }
 
         private TimegatedEvent UpdateFood { get; }
+
+        public static NpcSubType DecideClassTrainer(WowClass wowClass)
+        {
+            return wowClass switch
+            {
+                WowClass.Warrior => NpcSubType.WarriorTrainer,
+                WowClass.Paladin => NpcSubType.PaladinTrainer,
+                WowClass.Hunter => NpcSubType.HunterTrainer,
+                WowClass.Rogue => NpcSubType.RougeTrainer,
+                WowClass.Priest => NpcSubType.PriestTrainer,
+                WowClass.Deathknight => NpcSubType.DeathKnightTrainer,
+                WowClass.Shaman => NpcSubType.ShamanTrainer,
+                WowClass.Mage => NpcSubType.MageTrainer,
+                WowClass.Warlock => NpcSubType.WarlockTrainer,
+                WowClass.Druid => NpcSubType.DruidTrainer,
+            };
+        }
 
         public void ChangeMode(BotMode mode)
         {
@@ -592,7 +661,7 @@ namespace AmeisenBotX.Core.Logic
                 }
             }
 
-            if (!ArePartymembersInFight && DateTime.UtcNow - DungeonDiedTimestamp > TimeSpan.FromSeconds(30)
+            if ((!ArePartymembersInFight && DateTime.UtcNow - DungeonDiedTimestamp > TimeSpan.FromSeconds(30))
                 || Bot.Objects.Partymembers.Any(e => !e.IsDead
                     && (e.Class == WowClass.Paladin || e.Class == WowClass.Druid || e.Class == WowClass.Priest || e.Class == WowClass.Shaman)))
             {
@@ -687,8 +756,7 @@ namespace AmeisenBotX.Core.Logic
 
         private BtStatus Idle()
         {
-            Bot.CombatClass.OutOfCombatExecute();
-
+            Bot.CombatClass?.OutOfCombatExecute();
             return BtStatus.Success;
         }
 
@@ -842,10 +910,20 @@ namespace AmeisenBotX.Core.Logic
 
             // when we are in a group an they move too far away, abort eating
             // and dont start eating for 30s
-            if (Bot.Objects.PartymemberGuids.Any() && Bot.Player.DistanceTo(Bot.Objects.CenterPartyPosition) > 25.0f)
+            if (Config.EatDrinkAbortFollowParty && Bot.Objects.PartymemberGuids.Any() && Bot.Player.DistanceTo(Bot.Objects.CenterPartyPosition) > Config.EatDrinkAbortFollowPartyDistance)
             {
                 EatBlockEvent.Run();
                 return false;
+            }
+
+            bool isEating = Bot.Player.Auras.Any(e => Bot.Db.GetSpellName(e.SpellId) == "Food");
+            bool isDrinking = Bot.Player.Auras.Any(e => Bot.Db.GetSpellName(e.SpellId) == "Drink");
+
+            // still eating/drinking, wait until threshold is reached
+            if ((isEating && Bot.Player.HealthPercentage < Config.EatUntilPercent)
+                || (isDrinking && Bot.Player.MaxMana > 0 && Bot.Player.ManaPercentage < Config.DrinkUntilPercent))
+            {
+                return true;
             }
 
             if (UpdateFood.Run())
@@ -856,10 +934,10 @@ namespace AmeisenBotX.Core.Logic
             }
 
             return Bot.Player.HealthPercentage < Config.EatUntilPercent
-                   && (Food.Any(e => Enum.IsDefined(typeof(WowFood), e.Id)) 
+                   && (Food.Any(e => Enum.IsDefined(typeof(WowFood), e.Id))
                        || Food.Any(e => Enum.IsDefined(typeof(WowRefreshment), e.Id)))
                 || Bot.Player.MaxMana > 0 && Bot.Player.ManaPercentage < Config.DrinkUntilPercent
-                   && (Food.Any(e => Enum.IsDefined(typeof(WowWater), e.Id)) 
+                   && (Food.Any(e => Enum.IsDefined(typeof(WowWater), e.Id))
                        || Food.Any(e => Enum.IsDefined(typeof(WowRefreshment), e.Id)));
         }
 
@@ -890,6 +968,11 @@ namespace AmeisenBotX.Core.Logic
             return false;
         }
 
+        private bool NeedToFollowTactic()
+        {
+            return Bot.Tactic.Execute() && !Bot.Tactic.AllowAttacking;
+        }
+
         private bool NeedToLogin()
         {
             return Bot.Memory.Read(Bot.Wow.Offsets.IsIngame, out int isIngame) && isIngame == 0;
@@ -897,16 +980,11 @@ namespace AmeisenBotX.Core.Logic
 
         private bool NeedToLoot()
         {
-            IEnumerable<IWowUnit> units = GetLootableUnits();
-
-            if (units.Any())
+            foreach (IWowUnit unit in GetLootableUnits())
             {
-                foreach (IWowUnit unit in units)
+                if (!UnitsLooted.Contains(unit.Guid) && !UnitsToLoot.Contains(unit.Guid))
                 {
-                    if (!UnitsLooted.Contains(unit.Guid) && !UnitsToLoot.Contains(unit.Guid))
-                    {
-                        UnitsToLoot.Enqueue(unit.Guid);
-                    }
+                    UnitsToLoot.Enqueue(unit.Guid);
                 }
             }
 
@@ -921,32 +999,32 @@ namespace AmeisenBotX.Core.Logic
             bool needToSell = Bot.Character.Inventory.FreeBagSlots < Config.BagSlotsToGoSell
                               && Bot.Character.Inventory.Items
                               .Any(e => e.Price > 0 && !Config.ItemSellBlacklist.Contains(e.Name)
-                                      && (Config.SellGrayItems && e.ItemQuality == (int)WowItemQuality.Poor 
+                                      && (Config.SellGrayItems && e.ItemQuality == (int)WowItemQuality.Poor
                                       || Config.SellWhiteItems && e.ItemQuality == (int)WowItemQuality.Common
                                       || Config.SellGreenItems && e.ItemQuality == (int)WowItemQuality.Uncommon
-                                      || Config.SellBlueItems && e.ItemQuality == (int)WowItemQuality.Rare 
+                                      || Config.SellBlueItems && e.ItemQuality == (int)WowItemQuality.Rare
                                       || Config.SellPurpleItems && e.ItemQuality == (int)WowItemQuality.Epic));
-            
+
             IWowUnit vendorRepair = null;
             IWowUnit vendorSell = null;
 
-            if (Mode != BotMode.None && (Bot.Grinding.Profile == null || !Bot.Grinding.Profile.Vendors.Any()))
+            if (Mode != BotMode.None && Bot.Grinding.Profile?.NpcsOfInterest == null)
                 return false;
 
             switch (Mode)
             {
                 case BotMode.Grinding:
-                {
-                    Vendor repairNpcEntry = Bot.Grinding.Profile.Vendors.FirstOrDefault(e => e.Type == NpcType.VendorRepair);
-                    if (repairNpcEntry != null)
-                        vendorRepair = Bot.GetClosestVendorByEntryId(repairNpcEntry.EntryId); 
+                    {
+                        Npc repairNpcEntry = Bot.Grinding.Profile.NpcsOfInterest.FirstOrDefault(e => e.Type == NpcType.VendorRepair);
+                        if (repairNpcEntry != null)
+                            vendorRepair = Bot.GetClosestVendorByEntryId(repairNpcEntry.EntryId);
 
-                    Vendor sellNpcEntry = Bot.Grinding.Profile.Vendors.FirstOrDefault(e => e.Type == NpcType.VendorRepair || e.Type == NpcType.VendorSellBuy);
-                    if (sellNpcEntry != null)
-                        vendorSell = Bot.GetClosestVendorByEntryId(sellNpcEntry.EntryId);
+                        Npc sellNpcEntry = Bot.Grinding.Profile.NpcsOfInterest.FirstOrDefault(e => e.Type is NpcType.VendorRepair or NpcType.VendorSellBuy);
+                        if (sellNpcEntry != null)
+                            vendorSell = Bot.GetClosestVendorByEntryId(sellNpcEntry.EntryId);
 
-                    break;
-                }
+                        break;
+                    }
                 case BotMode.None:
                     IsRepairNpcNear(out IWowUnit repairNpc);
                     vendorRepair = repairNpc;
@@ -954,6 +1032,7 @@ namespace AmeisenBotX.Core.Logic
                     IsVendorNpcNear(out IWowUnit sellNpc);
                     vendorSell = sellNpc;
                     break;
+
                 case BotMode.Questing:
                     break;
 
@@ -973,6 +1052,25 @@ namespace AmeisenBotX.Core.Logic
             }
 
             return false;
+        }
+
+        private bool NeedToTrainSpells()
+        {
+            IWowUnit classTrainer = null;
+            Npc profileTrainer = null;
+
+            if (Bot.Grinding.Profile != null)
+                profileTrainer = Bot.Grinding.Profile.NpcsOfInterest?.FirstOrDefault(e =>
+                    e.Type == NpcType.ClassTrainer && e.SubType == DecideClassTrainer(Bot.Player.Class));
+
+            if (profileTrainer != null)
+                classTrainer = Bot.GetClosestTrainerByEntryId(profileTrainer.EntryId);
+
+            if (classTrainer == null)
+                return false;
+
+            ClassTrainer = classTrainer;
+            return Bot.Character.LastLevelTrained != 0 && Bot.Character.LastLevelTrained < Bot.Player.Level;
         }
 
         private BtStatus RunToCorpseAndRetrieveIt()
@@ -1018,6 +1116,26 @@ namespace AmeisenBotX.Core.Logic
             }
 
             return false;
+        }
+
+        private BtStatus SpeakWithClassTrainer()
+        {
+            if (ClassTrainer == null)
+                return BtStatus.Failed;
+
+            if (Bot.Player.Position.GetDistance(ClassTrainer.Position) > 3.0f)
+            {
+                Bot.Movement.SetMovementAction(MovementAction.Move, ClassTrainer.Position);
+                return BtStatus.Success;
+            }
+
+            Bot.Movement.StopMovement();
+
+            if (!NpcInteractionEvent.Run())
+                return BtStatus.Failed;
+
+            SpeakToClassTrainerRoutine.Run(Bot, ClassTrainer);
+            return BtStatus.Success;
         }
 
         private BtStatus SpeakWithMerchant()
@@ -1116,8 +1234,8 @@ namespace AmeisenBotX.Core.Logic
 
                 FollowOffset = new()
                 {
-                    X = ((float)Random.NextDouble() * ((float)Config.MinFollowDistance * factor) - (float)Config.MinFollowDistance * (0.5f * factor)) * 0.7071f,
-                    Y = ((float)Random.NextDouble() * ((float)Config.MinFollowDistance * factor) - (float)Config.MinFollowDistance * (0.5f * factor)) * 0.7071f,
+                    X = ((float)Random.NextDouble() * ((float)Config.MinFollowDistance * factor) - ((float)Config.MinFollowDistance * (0.5f * factor))) * 0.7071f,
+                    Y = ((float)Random.NextDouble() * ((float)Config.MinFollowDistance * factor) - ((float)Config.MinFollowDistance * (0.5f * factor))) * 0.7071f,
                     Z = 0.0f
                 };
             }

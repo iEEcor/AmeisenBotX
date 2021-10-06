@@ -5,22 +5,19 @@ using AmeisenBotX.Core.Engines.Battleground;
 using AmeisenBotX.Core.Engines.Battleground.einTyp;
 using AmeisenBotX.Core.Engines.Battleground.Jannis;
 using AmeisenBotX.Core.Engines.Battleground.KamelBG;
-using AmeisenBotX.Core.Engines.Character;
-using AmeisenBotX.Core.Engines.Character.Inventory;
-using AmeisenBotX.Core.Engines.Character.Inventory.Objects;
-using AmeisenBotX.Core.Engines.Chat;
 using AmeisenBotX.Core.Engines.Combat.Classes;
 using AmeisenBotX.Core.Engines.Dungeon;
 using AmeisenBotX.Core.Engines.Grinding;
 using AmeisenBotX.Core.Engines.Grinding.Profiles;
-using AmeisenBotX.Core.Engines.Grinding.Profiles.Profiles.Alliance.Group;
-using AmeisenBotX.Core.Engines.Grinding.Profiles.Profiles.Horde;
+using AmeisenBotX.Core.Engines.Grinding.Profiles.Alliance.Group;
+using AmeisenBotX.Core.Engines.Grinding.Profiles.Horde;
 using AmeisenBotX.Core.Engines.Jobs;
 using AmeisenBotX.Core.Engines.Jobs.Profiles;
 using AmeisenBotX.Core.Engines.Jobs.Profiles.Gathering;
 using AmeisenBotX.Core.Engines.Jobs.Profiles.Gathering.Jannis;
 using AmeisenBotX.Core.Engines.Movement;
 using AmeisenBotX.Core.Engines.Movement.Pathfinding;
+using AmeisenBotX.Core.Engines.PvP;
 using AmeisenBotX.Core.Engines.Quest;
 using AmeisenBotX.Core.Engines.Quest.Profiles;
 using AmeisenBotX.Core.Engines.Quest.Profiles.Shino;
@@ -29,6 +26,11 @@ using AmeisenBotX.Core.Engines.Tactic;
 using AmeisenBotX.Core.Engines.Test;
 using AmeisenBotX.Core.Logic;
 using AmeisenBotX.Core.Logic.Routines;
+using AmeisenBotX.Core.Managers.Character;
+using AmeisenBotX.Core.Managers.Character.Inventory;
+using AmeisenBotX.Core.Managers.Character.Inventory.Objects;
+using AmeisenBotX.Core.Managers.Chat;
+using AmeisenBotX.Core.Managers.Threat;
 using AmeisenBotX.Logging;
 using AmeisenBotX.Logging.Enums;
 using AmeisenBotX.Memory;
@@ -104,16 +106,15 @@ namespace AmeisenBotX.Core
                 Directory.CreateDirectory(dataFolder);
             }
 
-            Storage = new(dataFolder, new List<string>() { "AmeisenBotX.Core.Engines.Combat.Classes." });
-
             // start initializing the wow interface
             Bot = new();
             Bot.Memory = new XMemory();
+            Bot.Storage = new(dataFolder, new List<string>() { "AmeisenBotX.Core.Engines.Combat.Classes." });
 
             Logic = new AmeisenBotLogic(Config, Bot);
 
             Bot.Chat = new DefaultChatManager(Config, ProfileFolder);
-            Bot.Tactic = new DefaultTacticEngine();
+            Bot.Tactic = new DefaultTacticEngine(Bot);
 
             // load the wow specific interface based on file version (build number)
             Bot.Wow = FileVersionInfo.GetVersionInfo(config.PathToWowExe).FilePrivatePart switch
@@ -143,6 +144,8 @@ namespace AmeisenBotX.Core
             Bot.Jobs = new DefaultJobEngine(Bot, Config);
             Bot.Quest = new DefaultQuestEngine(Bot);
             Bot.Grinding = new DefaultGrindEngine(Bot, Config);
+            Bot.Pvp = new DefaultPvpEngine(Bot, Config);
+            Bot.Threat = new ThreatManager(Bot, Config);
             Bot.Test = new DefaultTestEngine(Bot, Config);
 
             Bot.PathfindingHandler = new AmeisenNavigationHandler(Config.NavmeshServerIp, Config.NameshServerPort);
@@ -168,6 +171,8 @@ namespace AmeisenBotX.Core
 
             AmeisenLogger.I.Log("AmeisenBot", "Loading Profiles", LogLevel.Verbose);
             LoadProfiles();
+
+            Bot.Storage.LoadAll();
 
             if (Config.RconEnabled)
             {
@@ -278,8 +283,6 @@ namespace AmeisenBotX.Core
 
         private LockedTimer StateMachineTimer { get; set; }
 
-        private StorageManager Storage { get; set; }
-
         private bool TalentUpdateRunning { get; set; }
 
         /// <summary>
@@ -290,7 +293,7 @@ namespace AmeisenBotX.Core
             IsRunning = false;
             AmeisenLogger.I.Log("AmeisenBot", "Stopping", LogLevel.Debug);
 
-            Storage.SaveAll();
+            Bot.Storage.SaveAll();
 
             if (Config.SaveWowWindowPosition)
             {
@@ -365,7 +368,7 @@ namespace AmeisenBotX.Core
         /// <param name="newConfig">New config to load</param>
         public void ReloadConfig(AmeisenBotConfig newConfig)
         {
-            Storage.SaveAll();
+            Bot.Storage.SaveAll();
 
             bool oldRconState = Config.RconEnabled;
 
@@ -384,7 +387,7 @@ namespace AmeisenBotX.Core
                 StateMachineTimer.OnTick -= RconClientTimerTick;
             }
 
-            Storage.LoadAll();
+            Bot.Storage.LoadAll();
         }
 
         /// <summary>
@@ -422,7 +425,7 @@ namespace AmeisenBotX.Core
                     StateMachineTimer.OnTick += RconClientTimerTick;
                 }
 
-                Storage.LoadAll();
+                Bot.Storage.LoadAll();
 
                 AmeisenLogger.I.Log("AmeisenBot", "Setup done", LogLevel.Debug);
                 OnStatusChanged?.Invoke();
@@ -482,13 +485,13 @@ namespace AmeisenBotX.Core
 
         private void InitCombatClasses()
         {
-            // Get search namespace
             string combatClassNamespace = "AmeisenBotX.Core.Engines.Combat.Classes";
-            
+
             IEnumerable<Type> combatClassTypes = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(x => x.GetTypes())
-                .Where(x => x.GetInterfaces().Contains(typeof(ICombatClass)))
-                .Where(x => x.Namespace.Contains(combatClassNamespace));
+                .Where(x => x.GetInterfaces().Contains(typeof(ICombatClass))
+                         && x.Namespace != null
+                         && x.Namespace.Contains(combatClassNamespace));
 
             List<ICombatClass> combatClassInstances = new();
 
@@ -496,7 +499,6 @@ namespace AmeisenBotX.Core
             combatClassInstances.AddRange(combatClassTypes.Where(x => x.GetConstructor(new Type[] { typeof(AmeisenBotInterfaces) }) != null)
                 .Select(x => (ICombatClass)Activator.CreateInstance(x, Bot)));
 
-            // Set combat classes
             CombatClasses = combatClassInstances;
         }
 
@@ -573,17 +575,16 @@ namespace AmeisenBotX.Core
                 LoadCustomCombatClass();
             }
 
-            if (Bot.CombatClass != null)
-            {
-                Storage.Storeables.Add(Bot.CombatClass);
-                Storage.LoadAll();
-            }
-
             // if a combatclass specified an ItemComparator
             // use it instead of the default one
             if (Bot.CombatClass?.ItemComparator != null)
             {
                 Bot.Character.ItemComparator = Bot.CombatClass.ItemComparator;
+
+                if (Bot.CombatClass is IStoreable s)
+                {
+                    Bot.Storage.Register(s);
+                }
             }
 
             Bot.Battleground = LoadClassByName(BattlegroundEngines, Config.BattlegroundEngine);
@@ -609,6 +610,15 @@ namespace AmeisenBotX.Core
         private void OnBattlegroundStatusChanged(string s)
         {
             AmeisenLogger.I.Log("AmeisenBot", $"OnBattlegroundStatusChanged: {s}");
+        }
+
+        private void OnClassTrainerShow(long timestamp, List<string> args)
+        {
+            // todo: Config.TrainSpells
+            if (!Bot.Target.IsClassTrainer) return;
+
+            TrainAllSpellsRoutine.Run(Bot, Config);
+            Bot.Character.LastLevelTrained = Bot.Player.Level;
         }
 
         private void OnEquipmentChanged(long timestamp, List<string> args)
@@ -681,7 +691,7 @@ namespace AmeisenBotX.Core
 
         private void OnMerchantShow(long timestamp, List<string> args)
         {
-            if (Config.AutoRepair && Bot.Target.IsRepairer)
+            if (Config.AutoRepair && Bot.Target != null && Bot.Target.IsRepairer)
             {
                 Bot.Wow.RepairAllItems();
             }
@@ -1066,7 +1076,9 @@ namespace AmeisenBotX.Core
             Bot.Wow.Events.Subscribe("CHARACTER_POINTS_CHANGED", OnTalentPointsChange);
             Bot.Wow.Events.Subscribe("COMBAT_LOG_EVENT_UNFILTERED", Bot.CombatLog.Parse);
 
+            // NPC Events
             Bot.Wow.Events.Subscribe("MERCHANT_SHOW", OnMerchantShow);
+            Bot.Wow.Events.Subscribe("TRAINER_SHOW", OnClassTrainerShow);
         }
     }
 }

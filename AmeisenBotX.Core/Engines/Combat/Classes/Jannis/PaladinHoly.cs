@@ -1,12 +1,14 @@
 ﻿using AmeisenBotX.Common.Utils;
+using AmeisenBotX.Core.Engines.Combat.Helpers.Aura.Objects;
 using AmeisenBotX.Core.Engines.Combat.Helpers.Healing;
 using AmeisenBotX.Core.Engines.Movement.Enums;
-using AmeisenBotX.Core.Logic.Utils.Auras.Objects;
 using AmeisenBotX.Core.Managers.Character.Comparators;
 using AmeisenBotX.Core.Managers.Character.Spells.Objects;
 using AmeisenBotX.Core.Managers.Character.Talents.Objects;
+using AmeisenBotX.Wow.Objects;
 using AmeisenBotX.Wow.Objects.Enums;
 using AmeisenBotX.Wow335a.Constants;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -20,6 +22,11 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
             Configurables.TryAdd("AttackInGroups", true);
             Configurables.TryAdd("AttackInGroupsUntilManaPercent", 85.0);
             Configurables.TryAdd("AttackInGroupsCloseCombat", false);
+            Configurables.TryAdd("BeaconOfLightSelfHealth", 85.0);
+            Configurables.TryAdd("BeaconOfLightPartyHealth", 85.0);
+            Configurables.TryAdd("DivinePleaMana", 60.0);
+            Configurables.TryAdd("DivineIlluminationManaAbove", 20.0);
+            Configurables.TryAdd("DivineIlluminationManaUntil", 50.0);
 
             MyAuraManager.Jobs.Add(new KeepActiveAuraJob(bot.Db, Paladin335a.BlessingOfWisdom, () => TryCastSpell(Paladin335a.BlessingOfWisdom, Bot.Wow.PlayerGuid, true)));
             MyAuraManager.Jobs.Add(new KeepActiveAuraJob(bot.Db, Paladin335a.DevotionAura, () => TryCastSpell(Paladin335a.DevotionAura, Bot.Wow.PlayerGuid, true)));
@@ -55,6 +62,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
             };
 
             SpellAbortFunctions.Add(HealingManager.ShouldAbortCasting);
+
+            ChangeBeaconEvent = new(TimeSpan.FromSeconds(1));
         }
 
         public override string Description => "Half-Smart CombatClass for the Holy Paladin spec.";
@@ -124,23 +133,57 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
 
         public override WowClass WowClass => WowClass.Paladin;
 
+        private TimegatedEvent ChangeBeaconEvent { get; }
+
         private HealingManager HealingManager { get; }
 
         public override void Execute()
         {
             base.Execute();
 
-            if (Bot.Player.ManaPercentage < 50
-               && Bot.Player.ManaPercentage > 20
+            if (Bot.Player.ManaPercentage < Configurables["DivineIlluminationManaUntil"]
+               && Bot.Player.ManaPercentage > Configurables["DivineIlluminationManaAbove"]
                && TryCastSpell(Paladin335a.DivineIllumination, 0, true))
             {
                 return;
             }
 
-            if (Bot.Player.ManaPercentage < 60
+            if (Bot.Player.ManaPercentage < Configurables["DivinePleaMana"]
                 && TryCastSpell(Paladin335a.DivinePlea, 0, true))
             {
                 return;
+            }
+
+            if (ChangeBeaconEvent.Ready)
+            {
+                if (Bot.Player.HealthPercentage < Configurables["BeaconOfLightSelfHealth"])
+                {
+                    // keep beacon of light on us to reduce healing ourself
+                    if (!Bot.Player.Auras.Any(e => Bot.Db.GetSpellName(e.SpellId) == Paladin335a.BeaconOfLight)
+                        && TryCastSpell(Paladin335a.BeaconOfLight, Bot.Player.Guid, true))
+                    {
+                        ChangeBeaconEvent.Run();
+                        return;
+                    }
+                }
+                else
+                {
+                    IEnumerable<IWowUnit> healableTargets = Bot.Wow.ObjectProvider.Partymembers.Where(e => e != null && !e.IsDead).OrderBy(e => e.HealthPercentage);
+
+                    if (healableTargets.Count() > 1)
+                    {
+                        IWowUnit t = healableTargets.Skip(1).FirstOrDefault(e => e.HealthPercentage < Configurables["BeaconOfLightPartyHealth"]);
+
+                        // keep beacon of light on second lowest target
+                        if (t != null
+                            && !t.Auras.Any(e => Bot.Db.GetSpellName(e.SpellId) == Paladin335a.BeaconOfLight)
+                            && TryCastSpell(Paladin335a.BeaconOfLight, t.Guid, true))
+                        {
+                            ChangeBeaconEvent.Run();
+                            return;
+                        }
+                    }
+                }
             }
 
             if (NeedToHealSomeone())
@@ -169,7 +212,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
                     if (isAlone || Configurables["AttackInGroupsCloseCombat"])
                     {
                         if (!Bot.Player.IsAutoAttacking
-                            && Bot.Target.Position.GetDistance(Bot.Player.Position) < 3.5f
+                            && Bot.Player.IsInMeleeRange(Bot.Target)
                             && EventAutoAttack.Run())
                         {
                             Bot.Wow.StartAutoAttack();
@@ -238,12 +281,6 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
             //     LastHealAction = DateTime.Now;
             //     return true;
             // }
-
-            if (Bot.Player.Auras.Any(e => Bot.Db.GetSpellName(e.SpellId) == Paladin335a.BeaconOfLight)
-                && TryCastSpell(Paladin335a.BeaconOfLight, Bot.Player.Guid, true))
-            {
-                return true;
-            }
 
             return HealingManager.Tick();
         }

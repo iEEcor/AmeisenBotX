@@ -29,6 +29,10 @@ namespace AmeisenBotX.Logging
             LockedTimer logFileWriter = new(1000, LogFileWriterTick);
         }
 
+        public event Action<LogLevel, string> OnLog;
+
+        public event Action<string, string, LogLevel> OnLogRaw;
+
         public static AmeisenLogger I
         {
             get
@@ -74,15 +78,12 @@ namespace AmeisenBotX.Logging
             {
                 string[] files = Directory.GetFiles(LogFileFolder);
 
-                for (int i = 0; i < files.Length; ++i)
+                foreach (string file in files)
                 {
-                    string file = files[i];
                     FileInfo fileInfo = new(file);
 
                     if (fileInfo.LastAccessTime < DateTime.Now.AddDays(daysToKeep * -1))
-                    {
                         fileInfo.Delete();
-                    }
                 }
             }
         }
@@ -93,7 +94,12 @@ namespace AmeisenBotX.Logging
             {
                 lock (stringBuilderLock)
                 {
-                    StringBuilder.AppendLine($"[{DateTime.UtcNow.ToLongTimeString()}] {$"[{logLevel}]",-9} {$"[{tag}]",-24} {log}");
+                    OnLogRaw?.Invoke(tag, log, logLevel);
+
+                    string line = $"[{DateTime.UtcNow.ToLongTimeString()}] {$"[{logLevel}]",-9} {$"[{tag}]",-24} {log}";
+
+                    StringBuilder.AppendLine(line);
+                    OnLog?.Invoke(logLevel, line);
                 }
             }
         }

@@ -99,6 +99,8 @@ namespace AmeisenBotX.Core
 
         public bool IdleActions { get; set; } = false;
 
+        public Dictionary<string, bool> IdleActionsEnabled { get; set; } = new();
+
         public bool IgnoreCombatWhileMounted { get; set; } = true;
 
         public double ItemRepairThreshold { get; set; } = 25.0;

@@ -25,7 +25,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Kamel
 
         public IEnumerable<int> BlacklistedTargetDisplayIds { get; set; }
 
-        public Dictionary<string, dynamic> Configurables { get; set; } = new Dictionary<string, dynamic>();
+        public Dictionary<string, dynamic> Configureables { get; set; } = new Dictionary<string, dynamic>();
 
         public string Description => "FCFS based CombatClass for the Blood Deathknight spec.";
 
@@ -95,7 +95,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Kamel
 
         public void Load(Dictionary<string, JsonElement> objects)
         { 
-            Configurables = objects["Configureables"].ToDyn();
+            Configureables = objects["Configureables"].ToDyn();
         }
 
         public void OutOfCombatExecute()
@@ -106,7 +106,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Kamel
         {
             return new()
             {
-                { "configureables", Configurables }
+                { "configureables", Configureables }
             };
         }
 
@@ -129,7 +129,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Kamel
                 return;
             }
 
-            double playerRunePower = Bot.Objects.Player.Runeenergy;
+            double playerRunePower = Bot.Objects.Player.RunicPower;
             double distanceToTarget = Bot.Objects.Player.Position.GetDistance(target.Position);
             double targetHealthPercent = (target.Health / (double)target.MaxHealth) * 100;
             double playerHealthPercent = (Bot.Objects.Player.Health / (double)Bot.Objects.Player.MaxHealth) * 100.0;

@@ -37,7 +37,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
 
             EventCheckFacing = new TimegatedEvent(TimeSpan.FromMilliseconds(500));
 
-            Configurables = new Dictionary<string, dynamic>
+            Configureables = new Dictionary<string, dynamic>
             {
                 { "HealthItemThreshold", 30.0 },
                 { "ManaItemThreshold", 30.0 }
@@ -49,7 +49,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
         public abstract string DisplayName { get; }
         public IEnumerable<int> BlacklistedTargetDisplayIds { get; set; }
         public IEnumerable<int> PriorityTargetDisplayIds { get; set; }
-        public Dictionary<string, dynamic> Configurables { get; set; }
+        public Dictionary<string, dynamic> Configureables { get; set; }
         public CooldownManager CooldownManager { get; private set; }
         public TimegatedEvent EventCheckFacing { get; set; }
         public GroupAuraManager GroupAuraManager { get; private set; }
@@ -113,40 +113,23 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
                     break;
             }
 
-            var spellToCheck = string.Empty;
-            switch (Bot.Player.Class)
+            static string SpellToCheck(WowClass wowClass) => wowClass switch
             {
-                case WowClass.None:
-                    break;
-                case WowClass.Warrior:
-                    spellToCheck = Warrior335a.HeroicStrike;
-                    break;
-                case WowClass.Paladin:
-                    break;
-                case WowClass.Hunter:
-                    break;
-                case WowClass.Rogue:
-                    break;
-                case WowClass.Priest:
-                    spellToCheck = Priest335a.Smite;
-                    break;
-                case WowClass.Deathknight:
-                    break;
-                case WowClass.Shaman:
-                    spellToCheck = Shaman335a.LightningBolt;
-                    break;
-                case WowClass.Mage:
-                    break;
-                case WowClass.Warlock:
-                    break;
-                case WowClass.Druid:
-                    break;
+                WowClass.None => string.Empty,
+                WowClass.Warrior => Warrior335a.HeroicStrike,
+                WowClass.Paladin => string.Empty,
+                WowClass.Hunter => string.Empty,
+                WowClass.Rogue => string.Empty,
+                WowClass.Priest => Priest335a.Smite,
+                WowClass.Deathknight => string.Empty,
+                WowClass.Shaman => Shaman335a.LightningBolt,
+                WowClass.Mage => Mage335a.Fireball,
+                WowClass.Warlock => string.Empty,
+                WowClass.Druid => string.Empty,
+                _ => throw new ArgumentOutOfRangeException(nameof(wowClass), $"Not expected wowClass value: {wowClass}")
+            };
 
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-
-            if (!IsInSpellRange(target, spellToCheck)
+            if (!IsInSpellRange(target, SpellToCheck(Bot.Player.Class))
                 || !Bot.Wow.IsInLineOfSight(Bot.Player.Position, target.Position))
                 Bot.Movement.SetMovementAction(MovementAction.Move, target.Position);
         }
@@ -200,8 +183,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
                     break;
                 // -------- Horde -------- >
                 case WowRace.Orc:
-                    if (Bot.Player.HealthPercentage < 50.0
-                        && Bot.GetEnemiesOrNeutralsInCombatWithMe<IWowUnit>(Bot.Player.Position, 10).Count() > 2)
+                    if (Bot.Player.HealthPercentage < 50.0 
+                        && Bot.GetEnemiesOrNeutralsInCombatWithMe<IWowUnit>(Bot.Player.Position, 10).Count() >= 2)
                         if (ValidateSpell(Racials335a.BloodFury, false))
                             TryCastSpell(Racials335a.BloodFury, Bot.Player.Guid, false, 0);
                     break;
@@ -209,13 +192,13 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
                     break;
                 case WowRace.Tauren:
                     if (Bot.Player.HealthPercentage < 50.0
-                        && Bot.GetEnemiesOrNeutralsInCombatWithMe<IWowUnit>(Bot.Player.Position, 10).Count() > 2)
+                        && Bot.GetEnemiesOrNeutralsInCombatWithMe<IWowUnit>(Bot.Player.Position, 10).Count() >= 2)
                         if (ValidateSpell(Racials335a.WarStomp, false))
                             TryCastSpell(Racials335a.WarStomp, Bot.Player.Guid, false, 0);
                     break;
                 case WowRace.Troll:
                     if (Bot.Player.ManaPercentage > 45.0
-                        && Bot.GetEnemiesOrNeutralsInCombatWithMe<IWowUnit>(Bot.Player.Position, 10).Count() > 2)
+                        && Bot.GetEnemiesOrNeutralsInCombatWithMe<IWowUnit>(Bot.Player.Position, 10).Count() >= 2)
                         if (ValidateSpell(Racials335a.Berserking, false))
                             TryCastSpell(Racials335a.Berserking, Bot.Player.Guid, false, 0);
                     break;
@@ -229,7 +212,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
 
         public virtual void Load(Dictionary<string, JsonElement> objects)
         {
-            if (objects.ContainsKey("Configureables")) { Configurables = objects["Configureables"].ToDyn(); }
+            if (objects.ContainsKey("Configureables")) { Configureables = objects["Configureables"].ToDyn(); }
         }
 
         public virtual void OutOfCombatExecute()
@@ -241,12 +224,12 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
                 return;
             }
 
-            if (MyAuraManager.Tick(Bot.Player.Auras) || GroupAuraManager.Tick())
-                return;
+            MyAuraManager.Tick(Bot.Player.Auras);
+            GroupAuraManager.Tick();
         }
 
         public virtual Dictionary<string, object> Save() =>
-            new() { { "Configureables", Configurables } };
+            new() { { "Configureables", Configureables } };
 
         public override string ToString() =>
             $"[{WowClass}] [{Role}] {DisplayName} ({Author})";
@@ -321,29 +304,11 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
             {
                 switch (Bot.Player.PowerType)
                 {
-                    case WowPowerType.Health:
-                        break;
-                    case WowPowerType.Mana:
-                        if (spell.Costs > Bot.Player.Mana) return false;
-                        break;
-                    case WowPowerType.Rage:
-                        if (spell.Costs > Bot.Player.Rage) return false;
-                        break;
-                    case WowPowerType.Focus:
-                        break;
-                    case WowPowerType.Energy:
-                        break;
-                    case WowPowerType.Happiness:
-                        break;
-                    case WowPowerType.Runes:
-                        break;
-                    case WowPowerType.RunicPower:
-                        break;
-                    case WowPowerType.Unknown:
-                        break;
-
-                    default:
-                        throw new ArgumentOutOfRangeException();
+                    case WowPowerType.Health when (spell.Costs > Bot.Player.Health): return false;
+                    case WowPowerType.Mana when (spell.Costs > Bot.Player.Mana): return false;
+                    case WowPowerType.Rage when (spell.Costs > Bot.Player.Rage): return false;
+                    case WowPowerType.Energy when (spell.Costs > Bot.Player.Energy): return false;
+                    case WowPowerType.RunicPower when (spell.Costs > Bot.Player.RunicPower): return false;
                 }
             }
 

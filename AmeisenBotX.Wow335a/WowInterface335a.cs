@@ -1,6 +1,5 @@
 ﻿using AmeisenBotX.Common.Math;
 using AmeisenBotX.Common.Utils;
-using AmeisenBotX.Core.Hook.Modules;
 using AmeisenBotX.Logging;
 using AmeisenBotX.Logging.Enums;
 using AmeisenBotX.Memory;
@@ -8,9 +7,11 @@ using AmeisenBotX.Wow;
 using AmeisenBotX.Wow.Events;
 using AmeisenBotX.Wow.Objects;
 using AmeisenBotX.Wow.Objects.Enums;
+using AmeisenBotX.Wow.Objects.Flags;
 using AmeisenBotX.Wow.Offsets;
 using AmeisenBotX.Wow335a.Events;
 using AmeisenBotX.Wow335a.Hook;
+using AmeisenBotX.Wow335a.Hook.Modules;
 using AmeisenBotX.Wow335a.Objects;
 using AmeisenBotX.Wow335a.Offsets;
 using System;
@@ -474,7 +475,12 @@ namespace AmeisenBotX.Wow335a
 
             try
             {
-                if (ExecuteLuaAndRead(BotUtils.ObfuscateLua("{v:0}=\"\"{v:1}=GetNumSkillLines()for a=1,{v:1} do local b,c,_,d,_,_,e=GetSkillLineInfo(a)if not c then {v:0}={v:0}..b;if a<{v:1} then {v:0}={v:0}..\":\"..tostring(d or 0)..\"/\"..tostring(e or 0)..\";\"end end end"), out string result))
+                ExecuteLuaAndRead(
+                    BotUtils.ObfuscateLua(
+                        "{v:0}=\"\"{v:1}=GetNumSkillLines()for a=1,{v:1} do local b,c,_,d,_,_,e=GetSkillLineInfo(a)if not c then {v:0}={v:0}..b;if a<{v:1} then {v:0}={v:0}..\":\"..tostring(d or 0)..\"/\"..tostring(e or 0)..\";\"end end end"),
+                    out string result);
+
+                if (!string.IsNullOrEmpty(result))
                 {
                     IEnumerable<string> skills = new List<string>(result.Split(';')).Select(s => s.Trim());
 
@@ -491,7 +497,10 @@ namespace AmeisenBotX.Wow335a
                     }
                 }
             }
-            catch { }
+            catch
+            {
+                // ignored
+            }
 
             return parsedSkills;
         }
@@ -604,7 +613,7 @@ namespace AmeisenBotX.Wow335a
         {
             start.Z += heightAdjust;
             end.Z += heightAdjust;
-            return Hook.TraceLine(start, end, (uint)WowWorldFrameHit.LineOfSight);
+            return Hook.TraceLine(start, end, (uint)WowWorldFrameHitFlag.HitTestLOS);
         }
 
         public bool IsRuneReady(int runeId)

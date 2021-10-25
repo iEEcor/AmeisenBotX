@@ -65,6 +65,8 @@ namespace AmeisenBotX.Core.Engines.Movement
 
         private BasicVehicle PlayerVehicle { get; set; }
 
+        private PreventMovementType PreventMovementType { get; set; }
+
         private TimegatedEvent RefreshPathEvent { get; }
 
         private bool TriedToMountUp { get; set; }
@@ -77,9 +79,15 @@ namespace AmeisenBotX.Core.Engines.Movement
             PlacesToAvoidList.RemoveAll(e => now > e.until);
         }
 
+        public void DirectMove(Vector3 position)
+        {
+            Bot.Character.MoveToPosition(position, 20.9f, 0.5f);
+            // PlayerVehicle.Update((x) => Bot.Character.MoveToPosition(x, 20.9f, 0.5f), MovementAction.Follow, position);
+        }
+
         public void Execute()
         {
-            if (!IsAllowedToMove)
+            if (!IsAllowedToMove && IsPreventMovementValid())
             {
                 Bot.Movement.StopMovement();
                 return;
@@ -138,8 +146,9 @@ namespace AmeisenBotX.Core.Engines.Movement
             }
         }
 
-        public void PreventMovement(TimeSpan timeSpan)
+        public void PreventMovement(TimeSpan timeSpan, PreventMovementType preventMovementType = PreventMovementType.Hard)
         {
+            PreventMovementType = preventMovementType;
             StopMovement();
             MovementBlockedUntil = DateTime.UtcNow + timeSpan;
         }
@@ -302,6 +311,21 @@ namespace AmeisenBotX.Core.Engines.Movement
                 LastPosition = Bot.Player.Position;
                 DistanceMovedCheckEvent.Run();
             }
+        }
+
+        private bool IsPreventMovementValid()
+        {
+            switch (PreventMovementType)
+            {
+                case PreventMovementType.SpellCast:
+                    // cast maybe aborted, allow to move again
+                    return Bot.Player.IsCasting;
+
+                default:
+                    break;
+            }
+
+            return false;
         }
 
         private void MountUp()

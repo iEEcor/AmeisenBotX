@@ -133,11 +133,16 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
             {
                 Bot.Wow.CastSpell("Fishing");
             }
-            else if (fishingBobber.Flags[(int)WowGameObjectFlags.NoDespawn])
+            else if (fishingBobber.Flags[(int)WowGameObjectFlag.NoDespawn])
             {
                 Bot.Wow.InteractWithObject(fishingBobber.BaseAddress);
                 Bot.Wow.LootEverything();
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{(AutopilotOnly ? "(🤖) " : "")}Go Fishing";
         }
 
         private bool IsFishingRodEquipped()

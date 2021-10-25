@@ -25,6 +25,7 @@ using AmeisenBotX.Core.Engines.Quest.Profiles.StartAreas;
 using AmeisenBotX.Core.Engines.Tactic;
 using AmeisenBotX.Core.Engines.Test;
 using AmeisenBotX.Core.Logic;
+using AmeisenBotX.Core.Logic.Idle.Actions;
 using AmeisenBotX.Core.Logic.Routines;
 using AmeisenBotX.Core.Managers.Character;
 using AmeisenBotX.Core.Managers.Character.Inventory;
@@ -109,19 +110,37 @@ namespace AmeisenBotX.Core
             // start initializing the wow interface
             Bot = new();
             Bot.Memory = new XMemory();
-            Bot.Storage = new(dataFolder, new List<string>() { "AmeisenBotX.Core.Engines.Combat.Classes." });
+
+            // load the wow specific interface based on file version (build number)
+            Bot.Wow = FileVersionInfo.GetVersionInfo(Config.PathToWowExe).FilePrivatePart switch
+            {
+                12340 => new WowInterface335a(Bot.Memory),
+                _ => throw new ArgumentException("Unsupported wow version", nameof(Config)),
+            };
+
+            Bot.Storage = new(dataFolder, new List<string>()
+            {
+                // strings to strip from class names
+                "AmeisenBotX.Core.Engines.Combat.Classes.",
+                "AmeisenBotX.Core.Engines.Tactic."
+            });
+
+            Bot.IdleActions = new(Config, new List<IIdleAction>()
+            {
+                new AuctionHouseIdleAction(Bot),
+                new CheckMailsIdleAction(Bot),
+                new FishingIdleAction(Bot),
+                new LookAroundIdleAction(Bot),
+                new LookAtGroupIdleAction(Bot),
+                new RandomEmoteIdleAction(Bot),
+                new SitByCampfireIdleAction(Bot),
+                new SitToChairIdleAction(Bot, Config.MinFollowDistance),
+            });
 
             Logic = new AmeisenBotLogic(Config, Bot);
 
             Bot.Chat = new DefaultChatManager(Config, ProfileFolder);
             Bot.Tactic = new DefaultTacticEngine(Bot);
-
-            // load the wow specific interface based on file version (build number)
-            Bot.Wow = FileVersionInfo.GetVersionInfo(config.PathToWowExe).FilePrivatePart switch
-            {
-                12340 => new WowInterface335a(Bot.Memory),
-                _ => throw new ArgumentException("Unsupported wow version", nameof(config)),
-            };
 
             Bot.Wow.OnStaticPopup += OnStaticPopup;
             Bot.Wow.OnBattlegroundStatus += OnBattlegroundStatusChanged;
@@ -615,7 +634,7 @@ namespace AmeisenBotX.Core
         private void OnClassTrainerShow(long timestamp, List<string> args)
         {
             // todo: Config.TrainSpells
-            if (!Bot.Target.IsClassTrainer) return;
+            if (!Bot.Target.IsClassTrainer && !Bot.Target.IsProfessionTrainer) return;
 
             TrainAllSpellsRoutine.Run(Bot, Config);
             Bot.Character.LastLevelTrained = Bot.Player.Level;
@@ -883,7 +902,7 @@ namespace AmeisenBotX.Core
                     {
                         int currentResource = Bot.Player.Class switch
                         {
-                            WowClass.Deathknight => Bot.Player.Runeenergy,
+                            WowClass.Deathknight => Bot.Player.RunicPower,
                             WowClass.Rogue => Bot.Player.Energy,
                             WowClass.Warrior => Bot.Player.Rage,
                             _ => Bot.Player.Mana,
@@ -891,7 +910,7 @@ namespace AmeisenBotX.Core
 
                         int maxResource = Bot.Player.Class switch
                         {
-                            WowClass.Deathknight => Bot.Player.MaxRuneenergy,
+                            WowClass.Deathknight => Bot.Player.MaxRunicPower,
                             WowClass.Rogue => Bot.Player.MaxEnergy,
                             WowClass.Warrior => Bot.Player.MaxRage,
                             _ => Bot.Player.MaxMana,

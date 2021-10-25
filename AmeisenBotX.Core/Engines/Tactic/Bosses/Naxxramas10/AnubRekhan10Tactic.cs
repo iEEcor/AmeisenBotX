@@ -1,4 +1,5 @@
 ﻿using AmeisenBotX.Common.Math;
+using AmeisenBotX.Common.Storage;
 using AmeisenBotX.Common.Utils;
 using AmeisenBotX.Core.Engines.Movement.Enums;
 using AmeisenBotX.Wow.Objects;
@@ -9,24 +10,19 @@ using System.Collections.Generic;
 
 namespace AmeisenBotX.Core.Engines.Tactic.Bosses.Naxxramas10
 {
-    public class AnubRekhan10Tactic : ITactic
+    public class AnubRekhan10Tactic : SimpleConfigurable, ITactic
     {
         public AnubRekhan10Tactic(AmeisenBotInterfaces bot)
         {
             Bot = bot;
             TankingPathQueue = new();
 
-            Configureables = new()
-            {
-                { "isOffTank", false },
-            };
+            Configurables.TryAdd("isOffTank", false);
         }
 
         public Vector3 Area { get; } = new(3273, -3476, 287);
 
         public float AreaRadius { get; } = 120.0f;
-
-        public Dictionary<string, dynamic> Configureables { get; private set; }
 
         public DateTime LocustSwarmActivated { get; private set; }
 
@@ -172,7 +168,7 @@ namespace AmeisenBotX.Core.Engines.Tactic.Bosses.Naxxramas10
 
             if (anubrekhan != null)
             {
-                if (Configureables["isOffTank"] == true)
+                if (Configurables["isOffTank"] == true)
                 {
                     // offtank should only focus adds
                     Bot.CombatClass.BlacklistedTargetDisplayIds = AnubRekhanDisplayId;

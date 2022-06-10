@@ -9,7 +9,9 @@ namespace AmeisenBotX.Logging
     public class AmeisenLogger
     {
         private static readonly object padlock = new();
+
         private static readonly object stringBuilderLock = new();
+
         private static AmeisenLogger instance;
 
         private AmeisenLogger(bool deleteOldLogs = false)
@@ -83,7 +85,9 @@ namespace AmeisenBotX.Logging
                     FileInfo fileInfo = new(file);
 
                     if (fileInfo.LastAccessTime < DateTime.Now.AddDays(daysToKeep * -1))
+                    {
                         fileInfo.Delete();
+                    }
                 }
             }
         }

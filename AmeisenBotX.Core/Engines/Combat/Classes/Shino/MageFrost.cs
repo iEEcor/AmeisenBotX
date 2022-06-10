@@ -29,7 +29,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Shino
 
         public override string Description => "Grinding and Leveling CombatClass.";
 
-        public override string DisplayName => "Frostmage";
+        public override string DisplayName2 => "Frostmage";
 
         public override bool HandlesMovement => false;
 
@@ -84,6 +84,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Shino
         public override bool WalkBehindEnemy => false;
 
         public override WowClass WowClass => WowClass.Mage;
+
+        public override WowVersion WowVersion => WowVersion.WotLK335a;
 
         private DateTime LastSheep { get; set; } = DateTime.Now;
 

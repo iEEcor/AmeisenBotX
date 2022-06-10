@@ -43,7 +43,7 @@ namespace AmeisenBotX.Core.Engines.Quest.Objects.Objectives
                 int amount = Killed;
                 if (CollectQuestItem)
                 {
-                    IWowInventoryItem inventoryItem = 
+                    IWowInventoryItem inventoryItem =
                         Bot.Character.Inventory.Items.Find(item => item.Id == QuestItemId);
 
                     if (inventoryItem != null)
@@ -60,6 +60,8 @@ namespace AmeisenBotX.Core.Engines.Quest.Objects.Objectives
             }
         }
 
+        public List<Vector3> VendorsLocation { get; }
+
         private AmeisenBotInterfaces Bot { get; }
 
         private int CollectOrKillAmount { get; }
@@ -67,8 +69,6 @@ namespace AmeisenBotX.Core.Engines.Quest.Objects.Objectives
         private bool CollectQuestItem => QuestItemId > 0;
 
         private Vector3 CurrentSpot { get; set; }
-
-        public List<Vector3> VendorsLocation { get; }
 
         private IWowUnit IWowUnit { get; set; }
 
@@ -89,7 +89,7 @@ namespace AmeisenBotX.Core.Engines.Quest.Objects.Objectives
             if (!Bot.Player.IsInCombat && DateTime.UtcNow.Subtract(LastUnitCheck).TotalMilliseconds >= 1250.0)
             {
                 LastUnitCheck = DateTime.UtcNow;
-                IWowUnit = Bot.Objects.WowObjects
+                IWowUnit = Bot.Objects.All
                     .OfType<IWowUnit>()
                     .Where(e => !e.IsDead && NpcIds.Contains(BotUtils.GuidToNpcId(e.Guid)) && !e.IsNotAttackable
                                 && Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Friendly)

@@ -291,14 +291,14 @@ namespace AmeisenBotX.Core.Engines.Battleground.Jannis.Profiles
         {
             if (Bot.Player.IsAlliance())
             {
-                IWowGameobject obj = Bot.Objects.WowObjects.OfType<IWowGameobject>()
+                IWowGameobject obj = Bot.Objects.All.OfType<IWowGameobject>()
                                     .FirstOrDefault(e => e.GameObjectType == WowGameObjectType.Door && e.DisplayId == 411);
 
                 return obj == null || obj.Bytes0 == 0;
             }
             else
             {
-                IWowGameobject obj = Bot.Objects.WowObjects.OfType<IWowGameobject>()
+                IWowGameobject obj = Bot.Objects.All.OfType<IWowGameobject>()
                                     .FirstOrDefault(e => e.GameObjectType == WowGameObjectType.Door && e.DisplayId == 850);
 
                 return obj == null || obj.Bytes0 == 0;
@@ -386,7 +386,7 @@ namespace AmeisenBotX.Core.Engines.Battleground.Jannis.Profiles
             {
                 if (Bot.Wow.ExecuteLuaAndRead(BotUtils.ObfuscateLua($"{{v:0}}=\"{{\"_,stateA,textA,_,_,_,_,_,_,_,_,_=GetWorldStateUIInfo(2)_,stateH,textH,_,_,_,_,_,_,_,_,_=GetWorldStateUIInfo(3)flagXA,flagYA=GetBattlefieldFlagPosition(1)flagXH,flagYH=GetBattlefieldFlagPosition(2){{v:0}}={{v:0}}..\"\\\"allianceState\\\" : \\\"\"..stateA..\"\\\",\"{{v:0}}={{v:0}}..\"\\\"allianceText\\\" : \\\"\"..textA..\"\\\",\"{{v:0}}={{v:0}}..\"\\\"hordeState\\\" : \\\"\"..stateH..\"\\\",\"{{v:0}}={{v:0}}..\"\\\"hordeText\\\" : \\\"\"..textH..\"\\\",\"{{v:0}}={{v:0}}..\"\\\"allianceFlagX\\\" : \\\"\"..flagXA..\"\\\",\"{{v:0}}={{v:0}}..\"\\\"allianceFlagY\\\" : \\\"\"..flagYA..\"\\\",\"{{v:0}}={{v:0}}..\"\\\"hordeFlagX\\\" : \\\"\"..flagXH..\"\\\",\"{{v:0}}={{v:0}}..\"\\\"hordeFlagY\\\" : \\\"\"..flagYH..\"\\\"\"{{v:0}}={{v:0}}..\"}}\""), out string result))
                 {
-                    Dictionary<string, dynamic> bgState = JsonSerializer.Deserialize<JsonElement>(result, new() { AllowTrailingCommas = true, NumberHandling = JsonNumberHandling.AllowReadingFromString }).ToDyn();
+                    Dictionary<string, dynamic> bgState = JsonSerializer.Deserialize<JsonElement>(result, new JsonSerializerOptions() { AllowTrailingCommas = true, NumberHandling = JsonNumberHandling.AllowReadingFromString }).ToDyn();
 
                     string[] splittedScoreH = ((string)bgState["hordeText"]).Split('/');
                     string[] splittedScoreA = ((string)bgState["allianceText"]).Split('/');
@@ -411,8 +411,8 @@ namespace AmeisenBotX.Core.Engines.Battleground.Jannis.Profiles
                         JBgBlackboard.MyTeamFlagPos = new(allianceFlagX, allianceFlagY, 0.0f);
                         JBgBlackboard.EnemyTeamFlagPos = new(hordeFlagX, hordeFlagY, 0.0f);
 
-                        JBgBlackboard.MyTeamFlagCarrier = Bot.Objects.WowObjects.OfType<IWowPlayer>().FirstOrDefault(e => e.HasBuffById(23333));
-                        JBgBlackboard.EnemyTeamFlagCarrier = Bot.Objects.WowObjects.OfType<IWowPlayer>().FirstOrDefault(e => e.HasBuffById(23335));
+                        JBgBlackboard.MyTeamFlagCarrier = Bot.Objects.All.OfType<IWowPlayer>().FirstOrDefault(e => e.HasBuffById(23333));
+                        JBgBlackboard.EnemyTeamFlagCarrier = Bot.Objects.All.OfType<IWowPlayer>().FirstOrDefault(e => e.HasBuffById(23335));
                     }
                     else
                     {
@@ -428,11 +428,11 @@ namespace AmeisenBotX.Core.Engines.Battleground.Jannis.Profiles
                         JBgBlackboard.MyTeamFlagPos = new(hordeFlagX, hordeFlagY, 0.0f);
                         JBgBlackboard.EnemyTeamFlagPos = new(allianceFlagX, allianceFlagY, 0.0f);
 
-                        JBgBlackboard.MyTeamFlagCarrier = Bot.Objects.WowObjects.OfType<IWowPlayer>().FirstOrDefault(e => e.HasBuffById(23335));
-                        JBgBlackboard.EnemyTeamFlagCarrier = Bot.Objects.WowObjects.OfType<IWowPlayer>().FirstOrDefault(e => e.HasBuffById(23333));
+                        JBgBlackboard.MyTeamFlagCarrier = Bot.Objects.All.OfType<IWowPlayer>().FirstOrDefault(e => e.HasBuffById(23335));
+                        JBgBlackboard.EnemyTeamFlagCarrier = Bot.Objects.All.OfType<IWowPlayer>().FirstOrDefault(e => e.HasBuffById(23333));
                     }
 
-                    JBgBlackboard.NearFlags = Bot.Objects.WowObjects.OfType<IWowGameobject>()
+                    JBgBlackboard.NearFlags = Bot.Objects.All.OfType<IWowGameobject>()
                                                  .Where(e => e.DisplayId == (int)WowGameObjectDisplayId.WsgAllianceFlag
                                                           || e.DisplayId == (int)WowGameObjectDisplayId.WsgHordeFlag);
                 }
@@ -450,7 +450,7 @@ namespace AmeisenBotX.Core.Engines.Battleground.Jannis.Profiles
             {
                 if (!CommonRoutines.MoveToTarget(Bot, nearestFlag.Position, 4.0f) && ActionEvent.Run())
                 {
-                    Bot.Wow.InteractWithObject(nearestFlag.BaseAddress);
+                    Bot.Wow.InteractWithObject(nearestFlag);
                     return BtStatus.Success;
                 }
 

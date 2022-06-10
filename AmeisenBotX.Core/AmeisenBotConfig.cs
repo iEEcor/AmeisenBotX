@@ -23,6 +23,8 @@ namespace AmeisenBotX.Core
 
         public bool AutocloseWow { get; set; } = true;
 
+        public bool AutoDestroyTrash { get; set; } = true;
+
         public bool AutoDisableRender { get; set; } = false;
 
         public bool AutojoinBg { get; set; } = true;
@@ -200,6 +202,8 @@ namespace AmeisenBotX.Core
 
         public float RepairNpcSearchRadius { get; set; } = 50.0f;
 
+        public bool RollGreedOnItems { get; set; } = true;
+
         public bool SaveBotWindowPosition { get; set; } = false;
 
         public bool SaveWowWindowPosition { get; set; } = false;
@@ -221,6 +225,8 @@ namespace AmeisenBotX.Core
         public bool StayCloseToGroupInCombat { get; set; } = false;
 
         public float SupportRange { get; set; } = 64.0f;
+
+        public bool TrainSpells { get; set; } = false;
 
         public bool UseBuiltInCombatClass { get; set; } = true;
 

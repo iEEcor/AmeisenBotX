@@ -53,7 +53,7 @@ namespace AmeisenBotX
                         Directory.CreateDirectory(Path.GetDirectoryName(ConfigToLoad));
                     }
 
-                    File.WriteAllText(ConfigToLoad, JsonSerializer.Serialize(configEditor.Config, new() { AllowTrailingCommas = true, NumberHandling = JsonNumberHandling.AllowReadingFromString }));
+                    File.WriteAllText(ConfigToLoad, JsonSerializer.Serialize(configEditor.Config, new JsonSerializerOptions() { AllowTrailingCommas = true, NumberHandling = JsonNumberHandling.AllowReadingFromString }));
                 }
             }
             else
@@ -90,7 +90,9 @@ namespace AmeisenBotX
             string[] directories = Directory.GetDirectories(DataPath);
 
             foreach (string str in directories)
+            {
                 comboboxSelectedConfig.Items.Add(Path.GetFileName(str));
+            }
 
             string[] args = Environment.GetCommandLineArgs();
 

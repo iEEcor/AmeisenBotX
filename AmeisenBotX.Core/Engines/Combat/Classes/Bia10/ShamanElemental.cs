@@ -13,7 +13,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
         public ShamanElemental(AmeisenBotInterfaces bot) : base(bot)
         {
             MyAuraManager.Jobs.Add(new KeepActiveAuraJob(bot.Db, Shaman335a.LightningShield, () =>
-                Bot.Player.ManaPercentage > 60.0 
+                Bot.Player.ManaPercentage > 60.0
                 && ValidateSpell(Shaman335a.LightningShield, true)
                 && TryCastSpell(Shaman335a.LightningShield, Bot.Player.Guid)));
             MyAuraManager.Jobs.Add(new KeepActiveAuraJob(bot.Db, Shaman335a.WaterShield, () =>
@@ -33,10 +33,12 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
             };
         }
 
-        public override string Version => "1.0";
         public override string Description => "CombatClass for the Elemental Shaman spec.";
+
         public override string DisplayName => "Shaman Elemental";
+
         public override bool HandlesMovement => false;
+
         public override bool IsMelee => false;
 
         public override IItemComparator ItemComparator { get; set; } =
@@ -47,7 +49,6 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
                 WowWeaponType.SwordTwoHand
             });
 
-        public override WowClass WowClass => WowClass.Shaman;
         public override WowRole Role => WowRole.Dps;
 
         public override TalentTree Talents { get; } = new()
@@ -58,13 +59,18 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
         };
 
         public override bool UseAutoAttacks => true;
+
+        public override string Version => "1.0";
+
         public override bool WalkBehindEnemy => false;
+
+        public override WowClass WowClass => WowClass.Shaman;
 
         public override void Execute()
         {
             base.Execute();
 
-            var spellName = SelectSpell(out var targetGuid);
+            string spellName = SelectSpell(out ulong targetGuid);
             TryCastSpell(spellName, targetGuid);
         }
 
@@ -73,9 +79,11 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
             base.OutOfCombatExecute();
 
             if (HandleDeadPartyMembers(Shaman335a.AncestralSpirit))
+            {
                 return;
+            }
 
-            var enchSpellName = DecideWeaponEnchantment(out var enchantName);
+            string enchSpellName = DecideWeaponEnchantment(out string enchantName);
             CheckForWeaponEnchantment(WowEquipmentSlot.INVSLOT_MAINHAND, enchantName, enchSpellName);
         }
 

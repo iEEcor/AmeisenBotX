@@ -5,30 +5,13 @@ namespace AmeisenBotX.Core.Managers.Character.Inventory.Objects
 {
     public class WowWeapon : WowBasicItem
     {
-        public WowWeaponType WeaponType { get; set; }
-
         public WowWeapon(IWowInventoryItem wowBasicItem) : base(wowBasicItem)
         {
-            Id = wowBasicItem.Id;
-            BagId = wowBasicItem.BagId;
-            BagSlot = wowBasicItem.BagSlot;
-            Type = wowBasicItem.Type;
-            Subtype = wowBasicItem.Subtype;
-            Name = wowBasicItem.Name;
-            ItemLink = wowBasicItem.ItemLink;
-            EquipSlot = wowBasicItem.EquipSlot;
-            ItemQuality = wowBasicItem.ItemQuality;
-            ItemLevel = wowBasicItem.ItemLevel;
-            RequiredLevel = wowBasicItem.RequiredLevel;
-            Price = wowBasicItem.Price;
-            Count = wowBasicItem.Count;
-            MaxStack = wowBasicItem.MaxStack;
-            Durability = wowBasicItem.Durability;
-            MaxDurability = wowBasicItem.MaxDurability;
-            EquipLocation = wowBasicItem.EquipLocation;
-            WeaponType = Enum.TryParse(GetWeaponTypeName(Subtype), out WowWeaponType weaponType) 
+            WeaponType = Enum.TryParse(GetWeaponTypeName(Subtype.ToLowerInvariant()), true, out WowWeaponType weaponType)
                 ? weaponType : WowWeaponType.Misc;
         }
+
+        public WowWeaponType WeaponType { get; set; }
 
         private static string GetWeaponTypeName(string subType)
         {
@@ -37,7 +20,9 @@ namespace AmeisenBotX.Core.Managers.Character.Inventory.Objects
                 subType = subType.Replace("Main Hand", "");
 
                 if (subType.EndsWith("s"))
+                {
                     subType = subType.Remove(subType.Length - 1);
+                }
 
                 return subType;
             }
@@ -47,7 +32,9 @@ namespace AmeisenBotX.Core.Managers.Character.Inventory.Objects
                 subType = subType.Replace("Off Hand", "");
 
                 if (subType.EndsWith("s"))
+                {
                     subType = subType.Remove(subType.Length - 1);
+                }
 
                 return subType;
             }
@@ -57,7 +44,9 @@ namespace AmeisenBotX.Core.Managers.Character.Inventory.Objects
                 subType = subType.Replace("One-Handed", "");
 
                 if (subType.EndsWith("s"))
+                {
                     subType = subType.Remove(subType.Length - 1);
+                }
 
                 return subType;
             }
@@ -67,31 +56,42 @@ namespace AmeisenBotX.Core.Managers.Character.Inventory.Objects
                 subType = subType.Replace("One-Hand", "");
 
                 if (subType.EndsWith("s"))
+                {
                     subType = subType.Remove(subType.Length - 1);
+                }
 
                 return subType;
             }
 
             if (subType.StartsWith("Staves"))
+            {
                 return "Staff";
+            }
 
-            if (subType.Contains("-"))
+            if (subType.Contains('-'))
             {
                 string handedness = subType.Replace("-", string.Empty).Split(" ", 2)[0];
                 string weaponType = subType.Replace("-", string.Empty).Split(" ", 2)[1];
 
                 if (weaponType.EndsWith("s"))
+                {
                     weaponType = weaponType.Remove(weaponType.Length - 1);
+                }
+
                 if (handedness.EndsWith("ed"))
+                {
                     handedness = handedness.Remove(handedness.Length - 2);
+                }
 
                 return weaponType + handedness;
             }
 
             if (subType.EndsWith("s"))
-                return subType = subType.Remove(subType.Length - 1);
+            {
+                return subType.Remove(subType.Length - 1);
+            }
 
-            return string.Empty;
+            return subType;
         }
     }
 }

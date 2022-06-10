@@ -28,7 +28,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Shino
 
         public override string Description => "FCFS based CombatClass for the Shadow Priest spec.";
 
-        public override string DisplayName => "Priest Shadow";
+        public override string DisplayName2 => "Priest Shadow";
 
         public override bool HandlesMovement => false;
 
@@ -94,6 +94,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Shino
         public override bool WalkBehindEnemy => false;
 
         public override WowClass WowClass => WowClass.Priest;
+
+        public override WowVersion WowVersion => WowVersion.WotLK335a;
 
         public override void Execute()
         {

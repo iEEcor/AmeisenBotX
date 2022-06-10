@@ -69,13 +69,13 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
                 {
                     Bot.Movement.StopMovement();
 
-                    IWowUnit auctioneer = Bot.Objects.WowObjects.OfType<IWowUnit>()
+                    IWowUnit auctioneer = Bot.Objects.All.OfType<IWowUnit>()
                         .FirstOrDefault(e => e.IsAuctioneer && e.Position.GetDistance(CurrentAuctioneer) < 1.0f);
 
                     if (auctioneer != null)
                     {
                         Bot.Wow.FacePosition(Bot.Player.BaseAddress, Bot.Player.Position, auctioneer.Position);
-                        Bot.Wow.InteractWithUnit(auctioneer.BaseAddress);
+                        Bot.Wow.InteractWithUnit(auctioneer);
                     }
 
                     TalkedToAuctioneer = true;

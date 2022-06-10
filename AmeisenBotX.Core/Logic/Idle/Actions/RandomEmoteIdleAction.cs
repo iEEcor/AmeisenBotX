@@ -19,6 +19,7 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
                 "laugh",
                 "dance",
                 "sit",
+                "sleep",
             };
 
             EmotesWithInteraction = new List<string>()
@@ -32,6 +33,7 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
                 "rude",
                 "roar",
                 "applaud",
+                "shy",
             };
 
             Rnd = new Random();
@@ -74,7 +76,7 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
                 if (Bot.Wow.TargetGuid != player.Guid)
                 {
                     Bot.Wow.ChangeTarget(player.Guid);
-                    Bot.Wow.FacePosition(Bot.Player.BaseAddress, Bot.Player.Position, player.Position);
+                    Bot.Wow.FacePosition(Bot.Player.BaseAddress, Bot.Player.Position, player.Position, true);
                 }
 
                 Bot.Wow.SendChatMessage($"/{EmotesWithInteraction[Rnd.Next(0, EmotesWithInteraction.Count)]}");

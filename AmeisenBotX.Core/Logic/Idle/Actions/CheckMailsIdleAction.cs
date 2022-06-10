@@ -70,12 +70,12 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
                 {
                     Bot.Movement.StopMovement();
 
-                    IWowGameobject mailbox = Bot.Objects.WowObjects.OfType<IWowGameobject>()
+                    IWowGameobject mailbox = Bot.Objects.All.OfType<IWowGameobject>()
                         .FirstOrDefault(e => e.GameObjectType == WowGameObjectType.Mailbox && e.Position.GetDistance(CurrentMailbox) < 1.0f);
 
                     if (mailbox != null)
                     {
-                        Bot.Wow.InteractWithObject(mailbox.BaseAddress);
+                        Bot.Wow.InteractWithObject(mailbox);
                         Bot.Wow.LuaDoString("for i=1,GetInboxNumItems()do AutoLootMailItem(i)end");
                     }
 

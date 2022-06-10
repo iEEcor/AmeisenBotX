@@ -48,13 +48,13 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
                 return;
             }
 
-            IWowGameobject nearCampfire = Bot.Objects.WowObjects.OfType<IWowGameobject>()
+            IWowGameobject nearCampfire = Bot.Objects.All.OfType<IWowGameobject>()
                 .FirstOrDefault(e => e.DisplayId == (int)WowGameObjectDisplayId.CookingCampfire
                                   && Bot.Objects.PartymemberGuids.Contains(e.CreatedBy));
 
             if (nearCampfire != null && !SatDown)
             {
-                Bot.Wow.FacePosition(Bot.Player.BaseAddress, Bot.Player.Position, nearCampfire.Position);
+                Bot.Wow.FacePosition(Bot.Player.BaseAddress, Bot.Player.Position, nearCampfire.Position, true);
                 Bot.Wow.SendChatMessage(Rnd.Next(0, 2) == 1 ? "/sit" : "/sleep");
                 SatDown = true;
             }

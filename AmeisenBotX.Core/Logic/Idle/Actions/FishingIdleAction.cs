@@ -95,7 +95,7 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
 
                 if (!BotMath.IsFacing(Bot.Player.Position, Bot.Player.Rotation, CurrentSpot))
                 {
-                    Bot.Wow.FacePosition(Bot.Player.BaseAddress, Bot.Player.Position, CurrentSpot);
+                    Bot.Wow.FacePosition(Bot.Player.BaseAddress, Bot.Player.Position, CurrentSpot, true);
                     return;
                 }
             }
@@ -111,7 +111,7 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
                 }
             }
 
-            IWowGameobject fishingBobber = Bot.Objects.WowObjects.OfType<IWowGameobject>()
+            IWowGameobject fishingBobber = Bot.Objects.All.OfType<IWowGameobject>()
                 .FirstOrDefault(e => e.GameObjectType == WowGameObjectType.FishingBobber && e.CreatedBy == Bot.Wow.PlayerGuid);
 
             if (!Started)
@@ -135,7 +135,7 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
             }
             else if (fishingBobber.Flags[(int)WowGameObjectFlag.NoDespawn])
             {
-                Bot.Wow.InteractWithObject(fishingBobber.BaseAddress);
+                Bot.Wow.InteractWithObject(fishingBobber);
                 Bot.Wow.LootEverything();
             }
         }

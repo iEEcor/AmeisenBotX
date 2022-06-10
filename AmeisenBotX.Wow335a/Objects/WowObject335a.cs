@@ -1,8 +1,7 @@
 ﻿using AmeisenBotX.Common.Math;
-using AmeisenBotX.Memory;
+using AmeisenBotX.Wow;
 using AmeisenBotX.Wow.Objects;
 using AmeisenBotX.Wow.Objects.Enums;
-using AmeisenBotX.Wow.Offsets;
 using AmeisenBotX.Wow335a.Objects.Descriptors;
 using System;
 
@@ -11,16 +10,9 @@ namespace AmeisenBotX.Wow335a.Objects
     [Serializable]
     public class WowObject335a : IWowObject
     {
-        public WowObject335a(IntPtr baseAddress, IntPtr descriptorAddress)
-        {
-            BaseAddress = baseAddress;
-            DescriptorAddress = descriptorAddress;
-            Type = WowObjectType.None;
-        }
+        public IntPtr BaseAddress { get; private set; }
 
-        public IntPtr BaseAddress { get; }
-
-        public IntPtr DescriptorAddress { get; }
+        public IntPtr DescriptorAddress { get; private set; }
 
         public int EntryId => RawObject.EntryId;
 
@@ -32,16 +24,27 @@ namespace AmeisenBotX.Wow335a.Objects
 
         public WowObjectType Type { get; protected set; }
 
-        protected WowObjectDescriptor RawObject { get; private set; }
+        protected WowMemoryApi Memory { get; private set; }
+
+        protected WowObjectDescriptor335a RawObject { get; private set; }
+
+        public virtual void Init(WowMemoryApi memory, IntPtr baseAddress, IntPtr descriptorAddress)
+        {
+            Memory = memory;
+            BaseAddress = baseAddress;
+            DescriptorAddress = descriptorAddress;
+
+            Update();
+        }
 
         public override string ToString()
         {
             return $"Object: {Guid}";
         }
 
-        public virtual void Update(IMemoryApi memoryApi, IOffsetList offsetList)
+        public virtual void Update()
         {
-            if (DescriptorAddress != IntPtr.Zero && memoryApi.Read(DescriptorAddress, out WowObjectDescriptor obj))
+            if (DescriptorAddress != IntPtr.Zero && Memory.Read(DescriptorAddress, out WowObjectDescriptor335a obj))
             {
                 RawObject = obj;
             }

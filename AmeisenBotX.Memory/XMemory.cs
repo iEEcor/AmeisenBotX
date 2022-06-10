@@ -152,12 +152,17 @@ namespace AmeisenBotX.Memory
         {
             lock (allocLock)
             {
-                AmeisenLogger.I.Log("XMemory", $"Freeing all memory Pools...");
+                if (AllocationPools != null)
+                {
+                    AmeisenLogger.I.Log("XMemory", $"Freeing all memory Pools...");
 
-                foreach (AllocationPool allocPool in AllocationPools)
-                    VirtualFreeEx(ProcessHandle, allocPool.Address, 0, AllocationType.Release);
+                    foreach (AllocationPool allocPool in AllocationPools)
+                    {
+                        VirtualFreeEx(ProcessHandle, allocPool.Address, 0, AllocationType.Release);
+                    }
 
-                AllocationPools.Clear();
+                    AllocationPools.Clear();
+                }
             }
         }
 
@@ -178,12 +183,11 @@ namespace AmeisenBotX.Memory
                     {
                         AmeisenLogger.I.Log("XMemory", $"Freed {size} bytes in Pool[{i}] at: 0x{address:X}");
 
-                        // if (AllocationPools[i].Allocations.Count == 0
-                        //     && VirtualFreeEx(ProcessHandle, AllocationPools[i].Address, 0, AllocationType.Release))
-                        // {
-                        //     AmeisenLogger.I.Log("XMemory", $"Freed Pool[{i}] with {AllocationPools[i].Size} bytes at: 0x{address:X}");
-                        //     AllocationPools.RemoveAt(i);
-                        // }
+                        // if (AllocationPools[i].Allocations.Count == 0 &&
+                        // VirtualFreeEx(ProcessHandle, AllocationPools[i].Address, 0,
+                        // AllocationType.Release)) { AmeisenLogger.I.Log("XMemory", $"Freed
+                        // Pool[{i}] with {AllocationPools[i].Size} bytes at: 0x{address:X}");
+                        // AllocationPools.RemoveAt(i); }
 
                         return true;
                     }
@@ -225,7 +229,7 @@ namespace AmeisenBotX.Memory
         private bool Initialized { get; set; }
 
         ///<inheritdoc cref="IMemoryApi.Init"/>
-        public bool Init(Process process, IntPtr processHandle, IntPtr mainThreadHandle)
+        public virtual bool Init(Process process, IntPtr processHandle, IntPtr mainThreadHandle)
         {
             Process = process ?? throw new ArgumentNullException(nameof(process), "process cannot be null");
 
@@ -302,8 +306,7 @@ namespace AmeisenBotX.Memory
                         }
                     }
 
-                    // use this to read the error
-                    // FasmStateError stateError = *(FasmStateError*)pBytes;
+                    // use this to read the error FasmStateError stateError = *(FasmStateError*)pBytes;
                     return false;
                 }
             }
@@ -344,7 +347,7 @@ namespace AmeisenBotX.Memory
         {
 #if DEBUG
             if (!Initialized) { throw new InvalidOperationException("call Init() before you do anything with this class"); }
-            if (address == IntPtr.Zero) { throw new ArgumentOutOfRangeException(nameof(address), "address must be > 0"); }
+            //if (address == IntPtr.Zero) { throw new ArgumentOutOfRangeException(nameof(address), "address must be > 0"); }
 #endif
             int size = sizeof(T);
 

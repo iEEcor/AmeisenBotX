@@ -1,8 +1,6 @@
 ﻿using AmeisenBotX.Common.Math;
-using AmeisenBotX.Memory;
 using AmeisenBotX.Wow.Objects;
 using AmeisenBotX.Wow.Objects.Enums;
-using AmeisenBotX.Wow.Offsets;
 using AmeisenBotX.Wow335a.Objects.Descriptors;
 using System;
 using System.Collections.Specialized;
@@ -13,11 +11,6 @@ namespace AmeisenBotX.Wow335a.Objects
     [Serializable]
     public class WowGameobject335a : WowObject335a, IWowGameobject
     {
-        public WowGameobject335a(IntPtr baseAddress, IntPtr descriptorAddress) : base(baseAddress, descriptorAddress)
-        {
-            Type = WowObjectType.GameObject;
-        }
-
         public byte Bytes0 { get; set; }
 
         public ulong CreatedBy { get; set; }
@@ -37,12 +30,12 @@ namespace AmeisenBotX.Wow335a.Objects
             return $"GameObject: [{EntryId}] ({(Enum.IsDefined(typeof(WowGameObjectDisplayId), DisplayId) ? ((WowGameObjectDisplayId)DisplayId).ToString() : DisplayId.ToString(CultureInfo.InvariantCulture))}:{DisplayId})";
         }
 
-        public override void Update(IMemoryApi memoryApi, IOffsetList offsetList)
+        public override void Update()
         {
-            base.Update(memoryApi, offsetList);
+            base.Update();
 
-            if (memoryApi.Read(DescriptorAddress + WowObjectDescriptor.EndOffset, out WowGameobjectDescriptor objPtr)
-                && memoryApi.Read(IntPtr.Add(BaseAddress, (int)offsetList.WowGameobjectPosition), out Vector3 position))
+            if (Memory.Read(DescriptorAddress + WowObjectDescriptor335a.EndOffset, out WowGameobjectDescriptor335a objPtr)
+                && Memory.Read(IntPtr.Add(BaseAddress, (int)Memory.Offsets.WowGameobjectPosition), out Vector3 position))
             {
                 GameObjectType = (WowGameObjectType)objPtr.GameobjectBytes1;
                 CreatedBy = objPtr.CreatedBy;

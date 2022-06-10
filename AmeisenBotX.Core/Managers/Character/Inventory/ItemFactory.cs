@@ -11,9 +11,15 @@ namespace AmeisenBotX.Core.Managers.Character.Inventory
     {
         public static WowBasicItem BuildSpecificItem(WowBasicItem basicItem)
         {
-            if (basicItem == null) 
+            if (basicItem == null)
+            {
                 throw new ArgumentNullException(nameof(basicItem), "basicItem cannot be null");
-            if (basicItem.Type == null) return basicItem;
+            }
+
+            if (basicItem.Type == null)
+            {
+                return basicItem;
+            }
 
             return basicItem.Type.ToUpper(CultureInfo.InvariantCulture) switch
             {
@@ -39,7 +45,8 @@ namespace AmeisenBotX.Core.Managers.Character.Inventory
         {
             return JsonSerializer.Deserialize<WowBasicItem>(json, new JsonSerializerOptions
             {
-                AllowTrailingCommas = true, NumberHandling = JsonNumberHandling.AllowReadingFromString
+                AllowTrailingCommas = true,
+                NumberHandling = JsonNumberHandling.AllowReadingFromString
             });
         }
 
@@ -47,7 +54,8 @@ namespace AmeisenBotX.Core.Managers.Character.Inventory
         {
             return JsonSerializer.Deserialize<List<WowBasicItem>>(json, new JsonSerializerOptions
             {
-                AllowTrailingCommas = true, NumberHandling = JsonNumberHandling.AllowReadingFromString
+                AllowTrailingCommas = true,
+                NumberHandling = JsonNumberHandling.AllowReadingFromString
             });
         }
     }

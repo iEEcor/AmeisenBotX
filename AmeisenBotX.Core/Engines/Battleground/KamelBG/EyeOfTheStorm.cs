@@ -81,7 +81,7 @@ namespace AmeisenBotX.Core.Engines.Battleground.KamelBG
         {
             Combat();
 
-            IWowGameobject FlagNode = Bot.Objects.WowObjects
+            IWowGameobject FlagNode = Bot.Objects.All
                 .OfType<IWowGameobject>()
                 .Where(x => Enum.IsDefined(typeof(Flags), x.DisplayId)
                         && x.Position.GetDistance(Bot.Player.Position) < 15)
@@ -98,7 +98,7 @@ namespace AmeisenBotX.Core.Engines.Battleground.KamelBG
 
                     if (CaptureFlagEvent.Run())
                     {
-                        Bot.Wow.InteractWithObject(FlagNode.BaseAddress);
+                        Bot.Wow.InteractWithObject(FlagNode);
                     }
                 }
                 else

@@ -39,16 +39,15 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
         {
             SatDown = false;
 
-            // get the center from where to cal the distance, this is needed
-            // to prevent going out of the follow trigger radius, which
-            // would cause a suspicous loop of running around
+            // get the center from where to cal the distance, this is needed to prevent going out of
+            // the follow trigger radius, which would cause a suspicous loop of running around
             Vector3 originPos = Bot.Player.Position; // StateMachine.Get<StateFollowing>().IsUnitToFollowThere(out IWowUnit unit, false) ? unit.Position : Bot.Player.Position;
 
-            IWowGameobject seat = Bot.Objects.WowObjects.OfType<IWowGameobject>()
+            IWowGameobject seat = Bot.Objects.All.OfType<IWowGameobject>()
                 .OrderBy(e => e.Position.GetDistance(originPos))
                 .FirstOrDefault(e => e.GameObjectType == WowGameObjectType.Chair
                     // make sure no one sits on the chair besides ourself
-                    && !Bot.Objects.WowObjects.OfType<IWowUnit>()
+                    && !Bot.Objects.All.OfType<IWowUnit>()
                         .Where(e => e.Guid != Bot.Wow.PlayerGuid)
                         .Any(x => e.Position.GetDistance(x.Position) < 0.6f)
                     && e.Position.GetDistance(originPos) < MaxDistance - 0.2f);
@@ -73,7 +72,7 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
                 else
                 {
                     Bot.Movement.StopMovement();
-                    Bot.Wow.InteractWithObject(CurrentSeat.BaseAddress);
+                    Bot.Wow.InteractWithObject(CurrentSeat);
 
                     SatDown = true;
                 }

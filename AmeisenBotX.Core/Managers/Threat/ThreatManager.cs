@@ -25,7 +25,7 @@ namespace AmeisenBotX.Core.Managers.Threat
         /// <summary>
         /// This method tries to calculate how dangerous a position is for us.
         ///
-        /// Range: 0.0f (Nothing) -> 100.0f (Deadly)
+        /// Range: 0.0f (Nothing) -&gt; 100.0f (Deadly)
         /// </summary>
         /// <param name="position">Position to check</param>
         /// <returns>Level of danger</returns>
@@ -38,7 +38,7 @@ namespace AmeisenBotX.Core.Managers.Threat
             float threat = 0.0f;
 
             // hostile players
-            IEnumerable<IWowUnit> hostilePlayers = Bot.Objects.WowObjects.OfType<IWowPlayer>().Where
+            IEnumerable<IWowUnit> hostilePlayers = Bot.Objects.All.OfType<IWowPlayer>().Where
             (
                 e => e.Type == WowObjectType.Player
                 && !e.IsDead
@@ -63,7 +63,7 @@ namespace AmeisenBotX.Core.Managers.Threat
             }
 
             // hostile npcs
-            IEnumerable<IWowUnit> hostileUnits = Bot.Objects.WowObjects.OfType<IWowUnit>().Where
+            IEnumerable<IWowUnit> hostileUnits = Bot.Objects.All.OfType<IWowUnit>().Where
             (
                 e => e.Type == WowObjectType.Unit
                 && !e.IsDead

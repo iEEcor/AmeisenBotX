@@ -1,8 +1,5 @@
-﻿using AmeisenBotX.Memory;
-using AmeisenBotX.Wow.Objects.Enums;
+﻿using AmeisenBotX.Wow.Objects.Enums;
 using AmeisenBotX.Wow.Objects.Flags;
-using AmeisenBotX.Wow.Objects.Raw;
-using AmeisenBotX.Wow.Offsets;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 
@@ -12,7 +9,7 @@ namespace AmeisenBotX.Wow.Objects
     {
         int AuraCount { get; }
 
-        IEnumerable<RawWowAura> Auras { get; }
+        IEnumerable<IWowAura> Auras { get; }
 
         WowClass Class { get; }
 
@@ -36,6 +33,8 @@ namespace AmeisenBotX.Wow.Objects
 
         double HealthPercentage { get; }
 
+        int HolyPower { get; }
+
         bool IsAmmoVendor => NpcFlags[(int)WowUnitNpcFlag.AmmoVendor];
 
         bool IsAuctioneer => NpcFlags[(int)WowUnitNpcFlag.Auctioneer];
@@ -54,7 +53,7 @@ namespace AmeisenBotX.Wow.Objects
 
         bool IsDazed => UnitFlags[(int)WowUnitFlag.Dazed];
 
-        bool IsDead => (Health == 0 || UnitFlagsDynamic[(int)WowUnitDynamicFlag.Dead]) && !UnitFlags2[(int)WowUnit2Flag.FeignDeath];
+        bool IsDead { get; }
 
         bool IsDisarmed => UnitFlags[(int)WowUnitFlag.Disarmed];
 
@@ -78,7 +77,7 @@ namespace AmeisenBotX.Wow.Objects
 
         bool IsInTaxiFlight => UnitFlags[(int)WowUnitFlag.TaxiFlight];
 
-        bool IsLootable => UnitFlagsDynamic[(int)WowUnitDynamicFlag.Lootable];
+        bool IsLootable { get; }
 
         bool IsLooting => UnitFlags[(int)WowUnitFlag.Looting];
 
@@ -110,7 +109,7 @@ namespace AmeisenBotX.Wow.Objects
 
         bool IsReagentVendor => NpcFlags[(int)WowUnitNpcFlag.ReagentVendor];
 
-        bool IsReferAFriendLinked => UnitFlagsDynamic[(int)WowUnitDynamicFlag.ReferAFriendLinked];
+        bool IsReferAFriendLinked { get; }
 
         bool IsRepairer => NpcFlags[(int)WowUnitNpcFlag.Repairer];
 
@@ -120,7 +119,7 @@ namespace AmeisenBotX.Wow.Objects
 
         bool IsSkinnable => UnitFlags[(int)WowUnitFlag.Skinnable];
 
-        bool IsSpecialInfo => UnitFlagsDynamic[(int)WowUnitDynamicFlag.SpecialInfo];
+        bool IsSpecialInfo { get; }
 
         bool IsSpellclick => NpcFlags[(int)WowUnitNpcFlag.Spellclick];
 
@@ -132,15 +131,15 @@ namespace AmeisenBotX.Wow.Objects
 
         bool IsTabardDesigner => NpcFlags[(int)WowUnitNpcFlag.TabardDesigner];
 
-        bool IsTaggedByMe => UnitFlagsDynamic[(int)WowUnitDynamicFlag.TaggedByMe];
+        bool IsTaggedByMe { get; }
 
-        bool IsTaggedByOther => UnitFlagsDynamic[(int)WowUnitDynamicFlag.TaggedByOther];
+        bool IsTaggedByOther { get; }
 
-        bool IsTappedByAllThreatList => UnitFlagsDynamic[(int)WowUnitDynamicFlag.IsTappedByAllThreatList];
+        bool IsTappedByAllThreatList { get; }
 
         bool IsTotem => UnitFlags[(int)WowUnitFlag.Totem];
 
-        bool IsTrackedUnit => UnitFlagsDynamic[(int)WowUnitDynamicFlag.TrackUnit];
+        bool IsTrackedUnit { get; }
 
         bool IsTrainer => NpcFlags[(int)WowUnitNpcFlag.Trainer];
 
@@ -155,6 +154,8 @@ namespace AmeisenBotX.Wow.Objects
         int MaxEnergy { get; }
 
         int MaxHealth { get; }
+
+        int MaxHolyPower { get; }
 
         int MaxMana { get; }
 
@@ -196,15 +197,29 @@ namespace AmeisenBotX.Wow.Objects
 
         ulong TargetGuid { get; }
 
+        public new WowObjectType Type => WowObjectType.Unit;
+
         BitVector32 UnitFlags { get; }
 
         BitVector32 UnitFlags2 { get; }
 
         BitVector32 UnitFlagsDynamic { get; }
 
-        static bool IsValidUnit(IWowUnit unit)
+        static bool IsValid(IWowUnit unit)
         {
-            return unit != null && !unit.IsNotAttackable;
+            return unit != null
+                && !unit.IsNotAttackable
+                && !unit.IsNotSelectable;
+        }
+
+        static bool IsValidAlive(IWowUnit unit)
+        {
+            return IsValid(unit) && !unit.IsDead;
+        }
+
+        static bool IsValidAliveInCombat(IWowUnit unit)
+        {
+            return IsValidAlive(unit) && unit.IsInCombat;
         }
 
         float AggroRangeTo(IWowUnit other);
@@ -215,6 +230,8 @@ namespace AmeisenBotX.Wow.Objects
 
         float MeleeRangeTo(IWowUnit wowUnit);
 
-        string ReadName(IMemoryApi memoryApi, IOffsetList offsetList);
+        string ReadName();
+
+        WowCreatureType ReadType();
     }
 }

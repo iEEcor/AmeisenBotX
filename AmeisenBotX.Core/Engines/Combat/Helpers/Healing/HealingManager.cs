@@ -1,4 +1,5 @@
 ﻿using AmeisenBotX.Common.Utils;
+using AmeisenBotX.Core.Engines.Combat.Helpers.Healing.Enums;
 using AmeisenBotX.Core.Managers.Character.Spells.Objects;
 using AmeisenBotX.Logging;
 using AmeisenBotX.Logging.Enums;
@@ -6,24 +7,38 @@ using AmeisenBotX.Wow.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 
 namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
 {
     public class HealingManager
     {
         /// <summary>
-        /// Create a new instance of the HealingManager that is used to choose healing spell in a smart way.
-        /// It observes the heals done by the bot and remembers how much each spell healed. Based of that
-        /// knoweledge it is able to cancel spells to prevent overheal an chose fast heals when the target
-        /// is going to die in a few seconds.
+        /// Create a new instance of the HealingManager that is used to choose healing spell in a
+        /// smart way. It observes the heals done by the bot and remembers how much each spell
+        /// healed. Based of that knoweledge it is able to cancel spells to prevent overheal and
+        /// choose fast heals when the target is going to die in a few seconds.
         /// </summary>
         /// <param name="bot">AmeisenBotInterfaces collection</param>
         /// <param name="tryCastSpellAction">Function to cast a spell</param>
-        /// <param name="damageMonitorSeconds">How many seconds to use for the incoming damage simulation</param>
-        /// <param name="healthWeight">How much weight should the health of a target have on its priority</param>
-        /// <param name="incomingDamageWeight">How much weight should the incoming damage have on its priority</param>
-        /// <param name="targetDyingSeconds">How many seconds should we try to simulate damage to recognized dying targets</param>
-        /// <param name="overhealingStopThreshold">How much percent of a spell needs to be overhealing to cancel it (0.0f - 1.0f)</param>
+        /// <param name="damageMonitorSeconds">
+        /// How many seconds to use for the incoming damage simulation
+        /// </param>
+        /// <param name="healthWeight">
+        /// How much weight should the health of a target have on its priority
+        /// </param>
+        /// <param name="incomingDamageWeight">
+        /// How much weight should the incoming damage have on its priority
+        /// </param>
+        /// <param name="targetDyingSeconds">
+        /// How many seconds should we try to simulate damage to recognized dying targets
+        /// </param>
+        /// <param name="overhealingStopThreshold">
+        /// How much percent of a spell needs to be overhealing to cancel it (0.0f - 1.0f)
+        /// </param>
+        /// <param name="overhealingStopThreshold">
+        /// How much percent of a spell is allowed to be overheal (0.0f - 1.0f)
+        /// </param>
         public HealingManager
         (
             AmeisenBotInterfaces bot,
@@ -32,7 +47,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
             float healthWeight = 0.7f,
             float incomingDamageWeight = 0.3f,
             int targetDyingSeconds = 4,
-            float overhealingStopThreshold = 0.75f
+            float overhealingStopThreshold = 0.8f,
+            float maxOverheal = 0.75f
         )
         {
             Bot = bot;
@@ -43,7 +59,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
             HealthWeightMod = healthWeight;
             IncomingDamageMod = incomingDamageWeight;
             TargetDyingSeconds = targetDyingSeconds;
-            OverhealingStopThreshold = 1.0f - overhealingStopThreshold;
+            OverhealingStopThreshold = overhealingStopThreshold;
+            MaxOverheal = maxOverheal;
 
             HealingSpells = new();
             MeasurementEvent = new(TimeSpan.FromSeconds(1));
@@ -62,6 +79,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
 
         public float IncomingDamageMod { get; set; }
 
+        public float MaxOverheal { get; set; }
+
         public float OverhealingStopThreshold { get; set; }
 
         public Dictionary<string, int> SpellHealing { get; set; }
@@ -70,7 +89,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
 
         private AmeisenBotInterfaces Bot { get; }
 
-        private List<Spell> HealingSpells { get; }
+        private List<(Spell, HealSpellType)> HealingSpells { get; }
 
         private Dictionary<ulong, int> IncomingDamage { get; }
 
@@ -86,11 +105,11 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
         /// Register a new spell that the bot can use to heal.
         /// </summary>
         /// <param name="spell">Spell object to register</param>
-        public void AddSpell(Spell spell)
+        public void AddSpell(Spell spell, HealSpellType spellType = HealSpellType.SingleTarget)
         {
             if (!SpellHealingBuffer.ContainsKey(spell.Name))
             {
-                HealingSpells.Add(spell);
+                HealingSpells.Add((spell, spellType));
                 SpellHealingBuffer.Add(spell.Name, new());
 
                 if (!SpellHealing.ContainsKey(spell.Name))
@@ -100,9 +119,34 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
             }
         }
 
+        public void Load(Dictionary<string, JsonElement> s)
+        {
+            if (s.TryGetValue("SpellHealing", out JsonElement j)) { SpellHealing = j.To<Dictionary<string, int>>(); }
+            if (s.TryGetValue("DamageMonitorSeconds", out j)) { DamageMonitorSeconds = j.To<int>(); }
+            if (s.TryGetValue("HealthWeight", out j)) { HealthWeightMod = j.To<float>(); }
+            if (s.TryGetValue("DamageWeight", out j)) { IncomingDamageMod = j.To<float>(); }
+            if (s.TryGetValue("OverhealingStopThreshold", out j)) { OverhealingStopThreshold = j.To<float>(); }
+            if (s.TryGetValue("MaxOverheal", out j)) { MaxOverheal = j.To<float>(); }
+            if (s.TryGetValue("TargetDyingSeconds", out j)) { TargetDyingSeconds = j.To<int>(); }
+        }
+
+        public Dictionary<string, object> Save()
+        {
+            return new()
+            {
+                { "SpellHealing", SpellHealing },
+                { "DamageMonitorSeconds", DamageMonitorSeconds },
+                { "HealthWeight", HealthWeightMod },
+                { "DamageWeight", IncomingDamageMod },
+                { "OverhealingStopThreshold", OverhealingStopThreshold },
+                { "MaxOverheal", MaxOverheal },
+                { "TargetDyingSeconds", TargetDyingSeconds },
+            };
+        }
+
         /// <summary>
-        /// Call this to determine wheter it would be useful to cancel
-        /// the current cast, if overhealing would be too much or not.
+        /// Call this to determine wheter it would be useful to cancel the current cast, if
+        /// overhealing would be too much or not.
         /// </summary>
         /// <param name="isTargetMyself">Spell casted on myself</param>
         /// <returns>True if you should cancel the cast, false if not</returns>
@@ -118,12 +162,12 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
                 if (SpellHealing.ContainsKey(castingSpell))
                 {
                     int missingHealth = target.MaxHealth - target.Health;
-                    int expectedHeal = (int)(SpellHealing[castingSpell] * OverhealingStopThreshold);
+                    int maxAllowedHeal = (int)(SpellHealing[castingSpell] * (1.0f + OverhealingStopThreshold));
 
                     // if the cast would be more than x% overheal, stop it
-                    if (missingHealth < expectedHeal)
+                    if (missingHealth < maxAllowedHeal)
                     {
-                        AmeisenLogger.I.Log("HealingManager", $"Abort cast due to overhealing: {missingHealth} < {expectedHeal}", LogLevel.Verbose);
+                        AmeisenLogger.I.Log("HealingManager", $"Abort cast due to overhealing: {missingHealth} < {maxAllowedHeal}", LogLevel.Verbose);
                         return true;
                     }
                 }
@@ -150,27 +194,30 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
             List<IWowUnit> healableTargets = Bot.Wow.ObjectProvider.Partymembers.Where(e => !e.IsDead).ToList();
             healableTargets.Add(Bot.Player);
 
-            // is anyone going to die in the next seconds that we could save
-            // order by max health to prioritize tanks
-            IWowUnit dyingTarget = healableTargets.OrderBy(e => e.MaxHealth)
-                .FirstOrDefault(e => IncomingDamage.ContainsKey(e.Guid) && e.Health - (IncomingDamage[e.Guid] * TargetDyingSeconds) < 0);
+            // is anyone going to die in the next seconds that we could save order by max health to
+            // prioritize tanks
+            IEnumerable<IWowUnit> dyingTargets = healableTargets.OrderBy(e => e.MaxHealth)
+                .Where(e => e.HealthPercentage < 20.0 || (IncomingDamage.ContainsKey(e.Guid) && e.Health - (IncomingDamage[e.Guid] * TargetDyingSeconds) <= 0));
 
-            if (dyingTarget != null)
+            if (dyingTargets != null)
             {
                 // fastest heal possible
-                IEnumerable<Spell> fastestHeals = HealingSpells.OrderBy(e => e.CastTime);
+                IEnumerable<(Spell, HealSpellType)> fastestHeals = HealingSpells.OrderBy(e => e.Item1.CastTime);
 
-                foreach (Spell spell in fastestHeals)
+                foreach (IWowUnit dyingTarget in dyingTargets)
                 {
-                    if (TryCastSpellAction(spell.Name, dyingTarget.Guid))
+                    foreach ((Spell spell, HealSpellType spellType) in fastestHeals)
                     {
-                        return true;
+                        if (TryCastSpellAction(spell.Name, dyingTarget.Guid))
+                        {
+                            return true;
+                        }
                     }
                 }
             }
 
-            // is there anyone that we could heal with zero overheal
-            IEnumerable<IWowUnit> targetsNeedToBeHealed = healableTargets.Where(e => SpellHealing.Any(x => (e.MaxHealth - e.Health) >= x.Value));
+            // is there anyone that we could heal with max allowed overheal
+            IEnumerable<IWowUnit> targetsNeedToBeHealed = healableTargets.Where(e => SpellHealing.Any(x => (e.MaxHealth - e.Health) >= x.Value * (1.0f + MaxOverheal)));
 
             if (targetsNeedToBeHealed.Any())
             {
@@ -198,11 +245,17 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
                 foreach ((ulong guid, double weight, int missingHealth) in weightedTargets.OrderByDescending(e => e.Item2))
                 {
                     // filter spell that would overheal us and then order by the amount of healing
-                    IEnumerable<Spell> heals = HealingSpells
-                        .Where(e => missingHealth >= SpellHealing[e.Name])
-                        .OrderByDescending(e => SpellHealing[e.Name]);
+                    IEnumerable<(Spell, HealSpellType)> heals = HealingSpells
+                        .Where(e => missingHealth >= SpellHealing[e.Item1.Name])
+                        .OrderByDescending(e => SpellHealing[e.Item1.Name]);
 
-                    foreach (Spell spell in heals)
+                    if (weightedTargets.Count > 2 && heals.Any(e => e.Item2 == HealSpellType.MultiTarget))
+                    {
+                        // try multi heals first
+                        heals = heals.OrderByDescending(e => e.Item2);
+                    }
+
+                    foreach ((Spell spell, HealSpellType spellType) in heals)
                     {
                         if (TryCastSpellAction(spell.Name, guid))
                         {
@@ -212,14 +265,15 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
                 }
             }
 
-            // if not, simulate further incoming damage to see whether we could compesate that damage in our cast time
+            // if not, simulate further incoming damage to see whether we could compesate that
+            // damage in our cast time
             foreach (IWowUnit target in healableTargets)
             {
                 if (!IncomingDamage.ContainsKey(target.Guid)) { continue; }
 
                 int healthMissing = target.MaxHealth - target.Health;
 
-                foreach (Spell spell in HealingSpells)
+                foreach ((Spell spell, HealSpellType spellType) in HealingSpells)
                 {
                     // try to simulate what the health looks like when we finished casting
                     int simulatedHealthMissing = healthMissing + (IncomingDamage[target.Guid] * (spell.CastTime / 1000));
@@ -296,7 +350,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
                 while (IncomingDamageBuffer[guid].Count > 0 && now - IncomingDamageBuffer[guid].Peek().Item1 > TimeSpan.FromSeconds(DamageMonitorSeconds))
                 {
                     IncomingDamageBuffer[guid].Dequeue();
-                };
+                }
 
                 if (IncomingDamageBuffer[guid].Count > 0)
                 {
@@ -311,7 +365,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
                 }
             }
 
-            // AmeisenLogger.I.Log("HealingManager", $"IncomingDamage: {JsonSerializer.Serialize(IncomingDamage)}", LogLevel.Verbose);
+            // AmeisenLogger.I.Log("HealingManager", $"IncomingDamage:
+            // {JsonSerializer.Serialize(IncomingDamage)}", LogLevel.Verbose);
         }
 
         /// <summary>
@@ -326,7 +381,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
                 while (SpellHealingBuffer[spell].Count > 32)
                 {
                     SpellHealingBuffer[spell].Dequeue();
-                };
+                }
 
                 if (SpellHealingBuffer[spell].Count > 0)
                 {
@@ -334,7 +389,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Healing
                 }
             }
 
-            // AmeisenLogger.I.Log("HealingManager", $"SpellHealing: {JsonSerializer.Serialize(SpellHealing)}", LogLevel.Verbose);
+            // AmeisenLogger.I.Log("HealingManager", $"SpellHealing:
+            // {JsonSerializer.Serialize(SpellHealing)}", LogLevel.Verbose);
         }
     }
 }

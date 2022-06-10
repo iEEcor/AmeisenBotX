@@ -4,7 +4,6 @@ using AmeisenBotX.Common.Utils;
 using AmeisenBotX.Core.Engines.Combat.Helpers;
 using AmeisenBotX.Core.Engines.Combat.Helpers.Aura;
 using AmeisenBotX.Core.Engines.Combat.Helpers.Targets;
-using AmeisenBotX.Core.Engines.Combat.Helpers.Targets.Logics;
 using AmeisenBotX.Core.Engines.Movement.Enums;
 using AmeisenBotX.Core.Managers.Character.Comparators;
 using AmeisenBotX.Core.Managers.Character.Inventory.Objects;
@@ -24,7 +23,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
     public abstract class BasicCombatClass : SimpleConfigurable, ICombatClass
     {
         private readonly int[] useableHealingItems = new int[]
-        {
+                                                                                                                                                                                                                                                                                                                                                                                {
             // potions
             118, 929, 1710, 2938, 3928, 4596, 5509, 13446, 22829, 33447,
             // healthstones
@@ -46,9 +45,9 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
             CooldownManager = new(Bot.Character.SpellBook.Spells);
             RessurrectionTargets = new();
 
-            TargetProviderDps = new TargetManager(new DpsTargetSelectionLogic(Bot), TimeSpan.FromMilliseconds(250));
-            TargetProviderTank = new TargetManager(new TankTargetSelectionLogic(Bot), TimeSpan.FromMilliseconds(250));
-            TargetProviderHeal = new TargetManager(new HealTargetSelectionLogic(Bot), TimeSpan.FromMilliseconds(250));
+            TargetProviderDps = new TargetManager(Bot, WowRole.Dps, TimeSpan.FromMilliseconds(250));
+            TargetProviderTank = new TargetManager(Bot, WowRole.Tank, TimeSpan.FromMilliseconds(250));
+            TargetProviderHeal = new TargetManager(Bot, WowRole.Heal, TimeSpan.FromMilliseconds(250));
 
             MyAuraManager = new(Bot);
             TargetAuraManager = new(Bot);
@@ -71,7 +70,9 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
 
         public abstract string Description { get; }
 
-        public abstract string DisplayName { get; }
+        public string DisplayName => $"[{WowVersion}] {DisplayName2}";
+
+        public abstract string DisplayName2 { get; }
 
         public TimegatedEvent EventAutoAttack { get; private set; }
 
@@ -86,8 +87,6 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
         public InterruptManager InterruptManager { get; private set; }
 
         public abstract bool IsMelee { get; }
-
-        public bool IsWanding { get; private set; }
 
         public abstract IItemComparator ItemComparator { get; set; }
 
@@ -117,6 +116,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
 
         public abstract WowClass WowClass { get; }
 
+        public abstract WowVersion WowVersion { get; }
+
         protected AmeisenBotInterfaces Bot { get; }
 
         protected DateTime LastSpellCast { get; private set; }
@@ -136,7 +137,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
             {
                 Bot.Wow.StopClickToMove();
                 Bot.Movement.Reset();
-                Bot.Wow.InteractWithUnit(Bot.Target.BaseAddress);
+                Bot.Wow.InteractWithUnit(Bot.Target);
             }
             else if (!Bot.Tactic.PreventMovement)
             {
@@ -146,6 +147,11 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
 
         public virtual void Execute()
         {
+            if (Bot.Target != null && EventCheckFacing.Run())
+            {
+                CheckFacing(Bot.Target);
+            }
+
             if (Bot.Player.IsCasting)
             {
                 if (!Bot.Objects.IsTargetInLineOfSight || SpellAbortFunctions.Any(e => e(CurrentCastTargetGuid == Bot.Player.Guid)))
@@ -154,11 +160,6 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
                 }
 
                 return;
-            }
-
-            if (Bot.Target != null && EventCheckFacing.Run())
-            {
-                CheckFacing(Bot.Target);
             }
 
             // Update Priority Units
@@ -174,14 +175,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
             // --------------------------- >
             if (UseAutoAttacks)
             {
-                IsWanding = Bot.Character.SpellBook.IsSpellKnown("Shoot")
-                    && Bot.Character.Equipment.Items.ContainsKey(WowEquipmentSlot.INVSLOT_RANGED)
-                    && (WowClass == WowClass.Priest || WowClass == WowClass.Mage || WowClass == WowClass.Warlock)
-                    && (IsWanding || TryCastSpell("Shoot", Bot.Wow.TargetGuid));
-
-                if (!IsWanding
-                    && EventAutoAttack.Run()
-                    && !Bot.Player.IsAutoAttacking
+                if (EventAutoAttack.Run()
+                    //&& !Bot.Player.IsAutoAttacking
                     && Bot.Player.IsInMeleeRange(Bot.Target))
                 {
                     Bot.Wow.StartAutoAttack();
@@ -287,7 +282,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
 
                 if (itemId > 0)
                 {
-                    IWowItem item = Bot.Objects.WowObjects.OfType<IWowItem>().FirstOrDefault(e => e.EntryId == itemId);
+                    IWowItem item = Bot.Objects.All.OfType<IWowItem>().FirstOrDefault(e => e.EntryId == itemId);
 
                     if (item != null
                         && !item.GetEnchantmentStrings().Any(e => e.Contains(enchantmentName, StringComparison.OrdinalIgnoreCase))
@@ -306,8 +301,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
             Spell spell = Bot.Character.SpellBook.GetSpellByName(spellName);
 
             if (spell != null
-                && !CooldownManager.IsSpellOnCooldown(spellName)
-                && spell.Costs < Bot.Player.Mana)
+                && spell.Costs < Bot.Player.Mana
+                && !CooldownManager.IsSpellOnCooldown(spellName))
             {
                 IEnumerable<IWowPlayer> groupPlayers = Bot.Objects.Partymembers
                     .OfType<IWowPlayer>()
@@ -315,7 +310,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
 
                 if (groupPlayers.Any())
                 {
-                    IWowPlayer player = groupPlayers.FirstOrDefault(e => (Bot.Db.GetUnitName(e, out string name) && !RessurrectionTargets.ContainsKey(name)) || RessurrectionTargets[name] < DateTime.Now);
+                    IWowPlayer player = groupPlayers.FirstOrDefault(e => (Bot.Db.GetUnitName(e, out string name) && !RessurrectionTargets.ContainsKey(name)) || RessurrectionTargets[name] < DateTime.UtcNow);
 
                     if (player != null)
                     {
@@ -323,11 +318,11 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
                         {
                             if (!RessurrectionTargets.ContainsKey(name))
                             {
-                                RessurrectionTargets.Add(name, DateTime.Now + TimeSpan.FromSeconds(10));
+                                RessurrectionTargets.Add(name, DateTime.UtcNow + TimeSpan.FromSeconds(10));
                                 return TryCastSpell(spellName, player.Guid, true);
                             }
 
-                            if (RessurrectionTargets[name] < DateTime.Now)
+                            if (RessurrectionTargets[name] < DateTime.UtcNow)
                             {
                                 return TryCastSpell(spellName, player.Guid, true);
                             }
@@ -352,27 +347,6 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
             return distance >= spell.MinRange && distance <= spell.MaxRange - 1.0;
         }
 
-        protected bool SelectTarget(ITargetProvider targetProvider)
-        {
-            if (targetProvider.Get(out IEnumerable<IWowUnit> targetToTarget))
-            {
-                if (targetToTarget != null && targetToTarget.Any())
-                {
-                    ulong guid = targetToTarget.First().Guid;
-
-                    if (Bot.Player.TargetGuid != guid)
-                    {
-                        Bot.Wow.ChangeTarget(guid);
-                        Bot.Objects.Player.Update(Bot.Memory, Bot.Wow.Offsets);
-                    }
-                }
-            }
-
-            return Bot.Target != null
-                && IWowUnit.IsValidUnit(Bot.Target)
-                && !Bot.Target.IsDead;
-        }
-
         protected bool TryCastAoeSpell(string spellName, ulong guid, bool needsResource = false, int currentResourceAmount = 0, bool forceTargetSwitch = false)
         {
             return TryCastSpell(spellName, guid, needsResource, currentResourceAmount, forceTargetSwitch)
@@ -385,7 +359,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
                 && CastAoeSpell(guid);
         }
 
-        protected bool TryCastSpell(string spellName, ulong guid, bool needsResource = false, int currentResourceAmount = 0, bool forceTargetSwitch = false)
+        protected bool TryCastSpell(string spellName, ulong guid, bool needsResource = false, int currentResourceAmount = 0, bool forceTargetSwitch = false, Func<bool> additionalValidation = null, Func<bool> additionalPreperation = null)
         {
             if (!Bot.Character.SpellBook.IsSpellKnown(spellName) || (guid != 0 && guid != Bot.Wow.PlayerGuid && !Bot.Objects.IsTargetInLineOfSight)) { return false; }
 
@@ -399,8 +373,14 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
                 bool isTargetMyself = guid == 0 || guid == Bot.Player.Guid;
                 Spell spell = Bot.Character.SpellBook.GetSpellByName(spellName);
 
-                if (ValidateSpell(spell, target, currentResourceAmount, needsResource, isTargetMyself))
+                if (ValidateSpell(spell, target, currentResourceAmount, needsResource, isTargetMyself)
+                    && (additionalValidation == null || additionalValidation()))
                 {
+                    if (additionalPreperation?.Invoke() == true)
+                    {
+                        return false;
+                    }
+
                     PrepareCast(isTargetMyself, target, needToSwitchTarget || forceTargetSwitch, spell);
                     LastSpellCast = DateTime.UtcNow;
                     return CastSpell(spellName, isTargetMyself);
@@ -412,74 +392,63 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
 
         protected bool TryCastSpellDk(string spellName, ulong guid, bool needsRunicPower = false, bool needsBloodrune = false, bool needsFrostrune = false, bool needsUnholyrune = false, bool forceTargetSwitch = false)
         {
-            if (!Bot.Character.SpellBook.IsSpellKnown(spellName) || (guid != 0 && guid != Bot.Wow.PlayerGuid && !Bot.Objects.IsTargetInLineOfSight)) { return false; }
-
-            if (ValidateTarget(guid, out IWowUnit target, out bool needToSwitchTarget))
+            return TryCastSpell(spellName, guid, needsRunicPower, Bot.Player.RunicPower, forceTargetSwitch, () =>
             {
-                bool isTargetMyself = guid == 0 || guid == Bot.Player.Guid;
-                Spell spell = Bot.Character.SpellBook.GetSpellByName(spellName);
                 Dictionary<int, int> runes = Bot.Wow.GetRunesReady();
-
-                if (ValidateSpell(spell, target, Bot.Player.RunicPower, needsRunicPower, isTargetMyself)
-                    && (!needsBloodrune || runes[(int)WowRuneType.Blood] > 0 || runes[(int)WowRuneType.Death] > 0)
+                return (!needsBloodrune || runes[(int)WowRuneType.Blood] > 0 || runes[(int)WowRuneType.Death] > 0)
                     && (!needsFrostrune || runes[(int)WowRuneType.Frost] > 0 || runes[(int)WowRuneType.Death] > 0)
-                    && (!needsUnholyrune || runes[(int)WowRuneType.Unholy] > 0 || runes[(int)WowRuneType.Death] > 0))
-                {
-                    PrepareCast(isTargetMyself, target, needToSwitchTarget || forceTargetSwitch, spell);
-                    LastSpellCast = DateTime.UtcNow;
-                    return CastSpell(spellName, isTargetMyself);
-                }
-            }
-
-            return false;
+                    && (!needsUnholyrune || runes[(int)WowRuneType.Unholy] > 0 || runes[(int)WowRuneType.Death] > 0);
+            });
         }
 
         protected bool TryCastSpellRogue(string spellName, ulong guid, bool needsEnergy = false, bool needsCombopoints = false, int requiredCombopoints = 1, bool forceTargetSwitch = false)
         {
-            if (!Bot.Character.SpellBook.IsSpellKnown(spellName) || (guid != 0 && guid != Bot.Wow.PlayerGuid && !Bot.Objects.IsTargetInLineOfSight)) { return false; }
-
-            if (ValidateTarget(guid, out IWowUnit target, out bool needToSwitchTarget))
+            return TryCastSpell(spellName, guid, needsEnergy, Bot.Player.Energy, forceTargetSwitch, () =>
             {
-                bool isTargetMyself = guid == 0 || guid == Bot.Player.Guid;
-                Spell spell = Bot.Character.SpellBook.GetSpellByName(spellName);
-
-                if (ValidateSpell(spell, target, Bot.Player.Energy, needsEnergy, isTargetMyself)
-                    && (!needsCombopoints || Bot.Player.ComboPoints >= requiredCombopoints))
-                {
-                    PrepareCast(isTargetMyself, target, needToSwitchTarget || forceTargetSwitch, spell);
-                    LastSpellCast = DateTime.UtcNow;
-                    return CastSpell(spellName, isTargetMyself);
-                }
-            }
-
-            return false;
+                return !needsCombopoints || Bot.Player.ComboPoints >= requiredCombopoints;
+            });
         }
 
         protected bool TryCastSpellWarrior(string spellName, string requiredStance, ulong guid, bool needsResource = false, bool forceTargetSwitch = false)
         {
-            if (!Bot.Character.SpellBook.IsSpellKnown(spellName) || (guid != 0 && guid != Bot.Wow.PlayerGuid && !Bot.Objects.IsTargetInLineOfSight)) { return false; }
-
-            if (ValidateTarget(guid, out IWowUnit target, out bool needToSwitchTarget))
+            return TryCastSpell(spellName, guid, needsResource, Bot.Player.Rage, forceTargetSwitch, null, () =>
             {
-                bool isTargetMyself = guid == 0 || guid == Bot.Player.Guid;
-                Spell spell = Bot.Character.SpellBook.GetSpellByName(spellName);
-
-                if (ValidateSpell(spell, target, Bot.Player.Rage, needsResource, isTargetMyself))
+                if (!Bot.Player.Auras.Any(e => Bot.Db.GetSpellName(e.SpellId) == requiredStance)
+                    && Bot.Character.SpellBook.IsSpellKnown(requiredStance)
+                    && !CooldownManager.IsSpellOnCooldown(requiredStance))
                 {
-                    if (!Bot.Player.Auras.Any(e => Bot.Db.GetSpellName(e.SpellId) == requiredStance)
-                        && Bot.Character.SpellBook.IsSpellKnown(requiredStance)
-                        && !CooldownManager.IsSpellOnCooldown(requiredStance))
+                    CastSpell(requiredStance, true);
+                    return false;
+                }
+
+                return true;
+            });
+        }
+
+        protected bool TryFindTarget(ITargetProvider targetProvider, out IEnumerable<IWowUnit> targets)
+        {
+            if (targetProvider.Get(out targets))
+            {
+                IWowUnit unit = targets.FirstOrDefault();
+
+                if (unit != null)
+                {
+                    if (Bot.Player.TargetGuid == unit.Guid)
                     {
-                        CastSpell(requiredStance, true);
+                        if (IWowUnit.IsValidAlive(Bot.Target))
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        Bot.Wow.ChangeTarget(unit.Guid);
                         return false;
                     }
-
-                    PrepareCast(isTargetMyself, target, needToSwitchTarget || forceTargetSwitch, spell);
-                    LastSpellCast = DateTime.UtcNow;
-                    return CastSpell(spellName, isTargetMyself);
                 }
             }
 
+            Bot.Wow.ChangeTarget(0);
             return false;
         }
 
@@ -497,7 +466,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
 
         private bool CastSpell(string spellName, bool castOnSelf)
         {
-            // spits out stuff like this "1;300" (1 or 0 whether the cast was successful or not);(the cooldown in ms)
+            // spits out stuff like this "1;300" (1 or 0 whether the cast was successful or
+            // not);(the cooldown in ms)
             if (Bot.Wow.ExecuteLuaAndRead(BotUtils.ObfuscateLua($"{{v:3}},{{v:4}}=GetSpellCooldown(\"{spellName}\"){{v:2}}=({{v:3}}+{{v:4}}-GetTime())*1000;if {{v:2}}<=0 then {{v:2}}=0;CastSpellByName(\"{spellName}\"{(castOnSelf ? ", \"player\"" : string.Empty)}){{v:5}},{{v:6}}=GetSpellCooldown(\"{spellName}\"){{v:1}}=({{v:5}}+{{v:6}}-GetTime())*1000;{{v:0}}=\"1;\"..{{v:1}} else {{v:0}}=\"0;\"..{{v:2}} end"), out string result))
             {
                 AmeisenLogger.I.Log("CombatClass", $"[{DisplayName}]: COOLDOWN RESULT: \"{result}\"", LogLevel.Verbose);
@@ -539,7 +509,6 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
                         CurrentCastTargetGuid = Bot.Target == null || castOnSelf ? Bot.Player.Guid : Bot.Target.Guid;
                         AmeisenLogger.I.Log("CombatClass", $"[{DisplayName}]: Casting Spell \"{spellName}\" on \"{(castOnSelf ? "self" : Bot.Target?.Guid)}\"", LogLevel.Verbose);
                         AmeisenLogger.I.Log("CombatClass", $"[{DisplayName}]: Spell \"{spellName}\" is on cooldown for {cooldown} ms", LogLevel.Verbose);
-                        IsWanding = IsWanding && spellName == "Shoot";
                         return true;
                     }
                     else
@@ -556,24 +525,9 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
 
         private void CheckFacing(IWowUnit target)
         {
-            if (target == null || target.Guid == Bot.Wow.PlayerGuid)
-            {
-                return;
-            }
-
-            float facingAngle = BotMath.GetFacingAngle(Bot.Player.Position, target.Position);
-            float angleDiff = facingAngle - Bot.Player.Rotation;
-
-            if (angleDiff < 0)
-            {
-                angleDiff += BotMath.DOUBLE_PI;
-            }
-            else if (angleDiff > BotMath.DOUBLE_PI)
-            {
-                angleDiff -= BotMath.DOUBLE_PI;
-            }
-
-            if (angleDiff > 1.0)
+            if (target != null
+                && target.Guid != Bot.Wow.PlayerGuid
+                && !BotMath.IsFacing(Bot.Player.Position, Bot.Player.Rotation, target.Position, 1.0f))
             {
                 Bot.Wow.FacePosition(Bot.Player.BaseAddress, Bot.Player.Position, target.Position);
             }
@@ -581,11 +535,6 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
 
         private void PrepareCast(bool isTargetMyself, IWowUnit target, bool switchTarget, Spell spell)
         {
-            if (!isTargetMyself && !BotMath.IsFacing(Bot.Player.Position, Bot.Player.Rotation, target.Position))
-            {
-                Bot.Wow.FacePosition(Bot.Player.BaseAddress, Bot.Player.Position, target.Position);
-            }
-
             if (!isTargetMyself && switchTarget)
             {
                 Bot.Wow.ChangeTarget(target.Guid);
@@ -593,9 +542,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
 
             if (spell.CastTime > 0)
             {
-                // stop pending movement if we cast something
                 Bot.Movement.PreventMovement(TimeSpan.FromMilliseconds(spell.CastTime), PreventMovementType.SpellCast);
-                CheckFacing(target);
             }
         }
 
@@ -603,7 +550,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Jannis
         {
             return spell != null
                 && !CooldownManager.IsSpellOnCooldown(spell.Name)
-                && (!needsResource || spell.Costs < resource)
+                && (!needsResource || spell.Costs <= resource)
                 && (isTargetMyself || IsInRange(spell, target));
         }
 

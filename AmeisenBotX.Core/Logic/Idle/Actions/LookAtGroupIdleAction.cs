@@ -1,4 +1,5 @@
-﻿using AmeisenBotX.Wow.Objects;
+﻿using AmeisenBotX.Common.Math;
+using AmeisenBotX.Wow.Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,11 +20,11 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
 
         public DateTime Cooldown { get; set; }
 
-        public int MaxCooldown => 125 * 1000;
+        public int MaxCooldown => 29 * 1000;
 
         public int MaxDuration => 0;
 
-        public int MinCooldown => 25 * 1000;
+        public int MinCooldown => 2 * 1000;
 
         public int MinDuration => 0;
 
@@ -33,18 +34,13 @@ namespace AmeisenBotX.Core.Logic.Idle.Actions
 
         public bool Enter()
         {
-            NearPartymembers = Bot.Objects.Partymembers.Where(e => e.Guid != Bot.Wow.PlayerGuid && e.Position.GetDistance(Bot.Player.Position) < 16.0f);
-            return NearPartymembers.Any();
+            return Bot.Objects.CenterPartyPosition != Vector3.Zero
+                && Bot.Objects.Partymembers.Any(e => e.Guid != Bot.Wow.PlayerGuid && e.Position.GetDistance(Bot.Player.Position) < 12.0f);
         }
 
         public void Execute()
         {
-            IWowUnit randomPartymember = NearPartymembers.ElementAt(Rnd.Next(0, NearPartymembers.Count()));
-
-            if (randomPartymember != null)
-            {
-                Bot.Wow.FacePosition(Bot.Player.BaseAddress, Bot.Player.Position, randomPartymember.Position * ((float)Rnd.NextDouble() / 10.0f));
-            }
+            Bot.Wow.FacePosition(Bot.Player.BaseAddress, Bot.Player.Position, BotMath.CalculatePositionAround(Bot.Objects.CenterPartyPosition, 0.0f, (float)Rnd.NextDouble() * (MathF.PI * 2), (float)Rnd.NextDouble()), true);
         }
 
         public override string ToString()

@@ -358,16 +358,15 @@ namespace AmeisenBotX
                 // Render blacklisted nodes
                 // ------------------------ >
 
-                // if (AmeisenBot.Bot.BotCache.TryGetBlacklistPosition((int)AmeisenBot.Bot.ObjectManager.MapId, playerPosition, 64, out List<Vector3> blacklistNodes))
-                // {
-                //     for (int i = 0; i < blacklistNodes.Count; ++i)
-                //     {
-                //         Vector3 node = blacklistNodes[i];
-                //         Point nodePositionOnMap = GetRelativePosition(playerPosition, node, playerRotation, halfWidth, halfHeight, scale);
+                // if
+                // (AmeisenBot.Bot.BotCache.TryGetBlacklistPosition((int)AmeisenBot.Bot.ObjectManager.MapId,
+                // playerPosition, 64, out List<Vector3> blacklistNodes)) { for (int i = 0; i <
+                // blacklistNodes.Count; ++i) { Vector3 node = blacklistNodes[i]; Point
+                // nodePositionOnMap = GetRelativePosition(playerPosition, node, playerRotation,
+                // halfWidth, halfHeight, scale);
                 //
-                //         RenderBlacklistNode(nodePositionOnMap.X, nodePositionOnMap.Y, BlacklistNodeBrush, BlacklistNodePen, graphics, 3, 32);
-                //     }
-                // }
+                // RenderBlacklistNode(nodePositionOnMap.X, nodePositionOnMap.Y, BlacklistNodeBrush,
+                // BlacklistNodePen, graphics, 3, 32); } }
 
                 // Render Gameobjects
                 // ------------------ >
@@ -457,7 +456,7 @@ namespace AmeisenBotX
 
         private void RenderHerbs(int halfWidth, int halfHeight, Graphics graphics, float scale, Vector3 playerPosition, float playerRotation)
         {
-            IEnumerable<IWowGameobject> herbNodes = AmeisenBot.Bot.Objects.WowObjects
+            IEnumerable<IWowGameobject> herbNodes = AmeisenBot.Bot.Objects.All
                 .OfType<IWowGameobject>()
                 .Where(e => Enum.IsDefined(typeof(WowHerbId), e.DisplayId));
 
@@ -471,7 +470,7 @@ namespace AmeisenBotX
 
         private void RenderOres(int halfWidth, int halfHeight, Graphics graphics, float scale, Vector3 playerPosition, float playerRotation)
         {
-            IEnumerable<IWowGameobject> oreNodes = AmeisenBot.Bot.Objects.WowObjects
+            IEnumerable<IWowGameobject> oreNodes = AmeisenBot.Bot.Objects.All
                 .OfType<IWowGameobject>()
                 .Where(e => Enum.IsDefined(typeof(WowOreId), e.DisplayId));
 
@@ -485,7 +484,7 @@ namespace AmeisenBotX
 
         private void RenderUnits(int halfWidth, int halfHeight, Graphics graphics, float scale, Vector3 playerPosition, float playerRotation)
         {
-            IEnumerable<IWowUnit> wowUnits = AmeisenBot.Bot.Objects.WowObjects
+            IEnumerable<IWowUnit> wowUnits = AmeisenBot.Bot.Objects.All
                 .OfType<IWowUnit>();
 
             for (int i = 0; i < wowUnits.Count(); ++i)

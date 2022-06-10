@@ -22,21 +22,11 @@ namespace AmeisenBotX.Wow.Offsets
 
         IntPtr CameraPointer { get; }
 
-        IntPtr CollisionM2C { get; }
-
-        IntPtr CollisionM2S { get; } 
-
-        IntPtr CollisionWMO { get; } 
-
         IntPtr ClickToMoveAction { get; }
 
         IntPtr ClickToMoveDistance { get; }
 
-        IntPtr ClickToMoveEnabled { get; }
-
         IntPtr ClickToMoveGuid { get; }
-
-        IntPtr ClickToMovePointer { get; }
 
         IntPtr ClickToMoveTurnSpeed { get; }
 
@@ -45,6 +35,12 @@ namespace AmeisenBotX.Wow.Offsets
         IntPtr ClientConnection { get; }
 
         IntPtr ClimbAngle { get; }
+
+        IntPtr CollisionM2C { get; }
+
+        IntPtr CollisionM2S { get; }
+
+        IntPtr CollisionWMO { get; }
 
         IntPtr ComboPoints { get; }
 
@@ -138,8 +134,6 @@ namespace AmeisenBotX.Wow.Offsets
 
         IntPtr RuneType { get; }
 
-        IntPtr StaticPlayer { get; }
-
         IntPtr TargetGuid { get; }
 
         IntPtr TickCount { get; }
@@ -152,26 +146,22 @@ namespace AmeisenBotX.Wow.Offsets
 
         IntPtr WowObjectType { get; }
 
-        IntPtr WowUnitFlyFlags { get; }
+        IntPtr WowUnitDbEntry { get; }
 
-        IntPtr WowUnitFlyFlagsPointer { get; }
+        IntPtr WowUnitDbEntryName { get; }
+
+        IntPtr WowUnitDbEntryType { get; }
 
         IntPtr WowUnitIsAutoAttacking { get; }
 
-        IntPtr WowUnitName1 { get; }
-
-        IntPtr WowUnitName2 { get; }
-
         IntPtr WowUnitPosition { get; }
-
-        IntPtr WowUnitRotation { get; }
-
-        IntPtr WowUnitSwimFlags { get; }
 
         IntPtr ZoneId { get; }
 
         IntPtr ZoneSubText { get; }
 
         IntPtr ZoneText { get; }
+
+        void Init(IntPtr mainModuleBase);
     }
 }

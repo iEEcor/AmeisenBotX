@@ -163,7 +163,7 @@ namespace AmeisenBotX
             if (!string.IsNullOrWhiteSpace(configPath))
             {
                 config = File.Exists(configPath)
-                    ? JsonSerializer.Deserialize<AmeisenBotConfig>(File.ReadAllText(configPath), new() { AllowTrailingCommas = true, NumberHandling = JsonNumberHandling.AllowReadingFromString })
+                    ? JsonSerializer.Deserialize<AmeisenBotConfig>(File.ReadAllText(configPath), new JsonSerializerOptions() { AllowTrailingCommas = true, NumberHandling = JsonNumberHandling.AllowReadingFromString })
                     : new();
 
                 config.Path = configPath;
@@ -187,7 +187,7 @@ namespace AmeisenBotX
             if (configWindow.SaveConfig)
             {
                 AmeisenBot.ReloadConfig(configWindow.Config);
-                File.WriteAllText(AmeisenBot.Config.Path, JsonSerializer.Serialize(configWindow.Config, new() { WriteIndented = true }));
+                File.WriteAllText(AmeisenBot.Config.Path, JsonSerializer.Serialize(configWindow.Config, new JsonSerializerOptions() { WriteIndented = true }));
 
                 KeyboardHook.Clear();
                 LoadHotkeys();
@@ -266,11 +266,14 @@ namespace AmeisenBotX
 
         private void ButtonToggleRendering_Click(object sender, RoutedEventArgs e)
         {
-            // float threat = AmeisenBot.Bot.Threat.Get(AmeisenBot.Bot.Player.Position);
+            // ((BasicCombatClass)AmeisenBot.Bot.CombatClass).TargetProviderTank.Get(out IEnumerable<IWowUnit> units);
+            // WowCreatureType type = AmeisenBot.Bot.Objects.Target.ReadType(AmeisenBot.Bot.Memory);
+            // bool x = AmeisenBot.Bot.Player.IsSwimming;
+            // bool y = AmeisenBot.Bot.Player.IsFlying;
 
-            if (AmeisenBot.Bot.Target != null)
+            foreach (IWowDynobject aoe in AmeisenBot.Bot.Objects.All.OfType<IWowDynobject>().Where(e => e.Caster == 1))
             {
-                bool inLos = AmeisenBot.Bot.Wow.IsInLineOfSight(AmeisenBot.Bot.Player.Position, AmeisenBot.Bot.Target.Position);
+                Vector3 pos = aoe.Position;
             }
         }
 
@@ -297,66 +300,69 @@ namespace AmeisenBotX
             {
                 IWowPlayer player = AmeisenBot.Bot.Player;
 
-                switch (player.Class)
+                if (player != null)
                 {
-                    case WowClass.Deathknight:
-                        UpdateBotInfo(player.MaxRunicPower, player.RunicPower, WowColors.dkPrimaryBrush, WowColors.dkSecondaryBrush);
-                        break;
+                    switch (player.Class)
+                    {
+                        case WowClass.Deathknight:
+                            UpdateBotInfo(player.MaxRunicPower, player.RunicPower, WowColors.dkPrimaryBrush, WowColors.dkSecondaryBrush);
+                            break;
 
-                    case WowClass.Druid:
-                        UpdateBotInfo(player.MaxMana, player.Mana, WowColors.druidPrimaryBrush, WowColors.druidSecondaryBrush);
-                        break;
+                        case WowClass.Druid:
+                            UpdateBotInfo(player.MaxMana, player.Mana, WowColors.druidPrimaryBrush, WowColors.druidSecondaryBrush);
+                            break;
 
-                    case WowClass.Hunter:
-                        UpdateBotInfo(player.MaxMana, player.Mana, WowColors.hunterPrimaryBrush, WowColors.hunterSecondaryBrush);
-                        break;
+                        case WowClass.Hunter:
+                            UpdateBotInfo(player.MaxMana, player.Mana, WowColors.hunterPrimaryBrush, WowColors.hunterSecondaryBrush);
+                            break;
 
-                    case WowClass.Mage:
-                        UpdateBotInfo(player.MaxMana, player.Mana, WowColors.magePrimaryBrush, WowColors.mageSecondaryBrush);
-                        break;
+                        case WowClass.Mage:
+                            UpdateBotInfo(player.MaxMana, player.Mana, WowColors.magePrimaryBrush, WowColors.mageSecondaryBrush);
+                            break;
 
-                    case WowClass.Paladin:
-                        UpdateBotInfo(player.MaxMana, player.Mana, WowColors.paladinPrimaryBrush, WowColors.paladinSecondaryBrush);
-                        break;
+                        case WowClass.Paladin:
+                            UpdateBotInfo(player.MaxMana, player.Mana, WowColors.paladinPrimaryBrush, WowColors.paladinSecondaryBrush);
+                            break;
 
-                    case WowClass.Priest:
-                        UpdateBotInfo(player.MaxMana, player.Mana, WowColors.priestPrimaryBrush, WowColors.priestSecondaryBrush);
-                        break;
+                        case WowClass.Priest:
+                            UpdateBotInfo(player.MaxMana, player.Mana, WowColors.priestPrimaryBrush, WowColors.priestSecondaryBrush);
+                            break;
 
-                    case WowClass.Rogue:
-                        UpdateBotInfo(player.MaxEnergy, player.Energy, WowColors.roguePrimaryBrush, WowColors.rogueSecondaryBrush);
-                        break;
+                        case WowClass.Rogue:
+                            UpdateBotInfo(player.MaxEnergy, player.Energy, WowColors.roguePrimaryBrush, WowColors.rogueSecondaryBrush);
+                            break;
 
-                    case WowClass.Shaman:
-                        UpdateBotInfo(player.MaxMana, player.Mana, WowColors.shamanPrimaryBrush, WowColors.shamanSecondaryBrush);
-                        break;
+                        case WowClass.Shaman:
+                            UpdateBotInfo(player.MaxMana, player.Mana, WowColors.shamanPrimaryBrush, WowColors.shamanSecondaryBrush);
+                            break;
 
-                    case WowClass.Warlock:
-                        UpdateBotInfo(player.MaxMana, player.Mana, WowColors.warlockPrimaryBrush, WowColors.warlockSecondaryBrush);
-                        break;
+                        case WowClass.Warlock:
+                            UpdateBotInfo(player.MaxMana, player.Mana, WowColors.warlockPrimaryBrush, WowColors.warlockSecondaryBrush);
+                            break;
 
-                    case WowClass.Warrior:
-                        UpdateBotInfo(player.MaxRage, player.Rage, WowColors.warriorPrimaryBrush, WowColors.warriorSecondaryBrush);
-                        break;
-                }
+                        case WowClass.Warrior:
+                            UpdateBotInfo(player.MaxRage, player.Rage, WowColors.warriorPrimaryBrush, WowColors.warriorSecondaryBrush);
+                            break;
+                    }
 
-                if (LabelUpdateEvent.Run())
-                {
-                    UpdateBottomLabels();
-                }
+                    if (LabelUpdateEvent.Run())
+                    {
+                        UpdateBottomLabels();
+                    }
 
-                if (DrawOverlay)
-                {
-                    Overlay ??= new(AmeisenBot.Bot.Memory.Process.MainWindowHandle);
-                    OverlayRenderCurrentPath();
+                    if (DrawOverlay)
+                    {
+                        Overlay ??= new(AmeisenBot.Bot.Memory.Process.MainWindowHandle);
+                        OverlayRenderCurrentPath();
 
-                    Overlay?.Draw();
-                    NeedToClearOverlay = true;
-                }
-                else if (NeedToClearOverlay)
-                {
-                    Overlay.Clear();
-                    NeedToClearOverlay = false;
+                        Overlay?.Draw();
+                        NeedToClearOverlay = true;
+                    }
+                    else if (NeedToClearOverlay)
+                    {
+                        Overlay.Clear();
+                        NeedToClearOverlay = false;
+                    }
                 }
             });
         }
@@ -448,7 +454,7 @@ namespace AmeisenBotX
                 && !string.IsNullOrWhiteSpace(AmeisenBot.Config.Path)
                 && Directory.Exists(Path.GetDirectoryName(AmeisenBot.Config.Path)))
             {
-                File.WriteAllText(AmeisenBot.Config.Path, JsonSerializer.Serialize(AmeisenBot.Config, new() { WriteIndented = true, IncludeFields = true }));
+                File.WriteAllText(AmeisenBot.Config.Path, JsonSerializer.Serialize(AmeisenBot.Config, new JsonSerializerOptions() { WriteIndented = true, IncludeFields = true }));
             }
         }
 
@@ -587,14 +593,10 @@ namespace AmeisenBotX
                 AmeisenBot = new(config);
 
                 // capture whisper messages and display them in the bots ui as a flashing button
-                AmeisenBot.Bot.Wow.Events.Subscribe("CHAT_MSG_WHISPER", OnWhisper);
+                AmeisenBot.Bot.Wow.Events?.Subscribe("CHAT_MSG_WHISPER", OnWhisper);
 
                 // events used to update our GUI
                 AmeisenBot.Bot.Objects.OnObjectUpdateComplete += OnObjectUpdateComplete;
-                // AmeisenBot.StateMachine.OnStateMachineStateChanged += () =>
-                // {
-                //     Dispatcher.InvokeAsync(() => { labelCurrentState.Content = $"{AmeisenBot.StateMachine.CurrentState.Key}"; });
-                // };
 
                 // handle the autoposition function where the wow window gets "absorbed" by the bots window
                 if (AmeisenBot.Config.AutoPositionWow)

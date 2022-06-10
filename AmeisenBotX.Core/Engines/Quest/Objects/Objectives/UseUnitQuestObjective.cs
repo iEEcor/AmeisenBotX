@@ -31,27 +31,27 @@ namespace AmeisenBotX.Core.Engines.Quest.Objects.Objectives
 
         private UseUnitQuestObjectiveCondition Condition { get; }
 
-        private IWowUnit IWowUnit { get; set; }
-
         private List<int> ObjectDisplayIds { get; }
 
         private bool QuestgiversOnly { get; }
+
+        private IWowUnit Unit { get; set; }
 
         public void Execute()
         {
             if (Finished || Bot.Player.IsCasting) { return; }
 
-            IWowUnit = Bot.GetClosestQuestGiverByDisplayId(Bot.Player.Position, ObjectDisplayIds, QuestgiversOnly);
+            Unit = Bot.GetClosestQuestGiverByDisplayId(Bot.Player.Position, ObjectDisplayIds, QuestgiversOnly);
 
-            if (IWowUnit != null)
+            if (Unit != null)
             {
-                if (IWowUnit.Position.GetDistance(Bot.Player.Position) < 3.0)
+                if (Unit.Position.GetDistance(Bot.Player.Position) < 3.0)
                 {
                     Bot.Wow.StopClickToMove();
                     Bot.Movement.Reset();
                 }
 
-                Bot.Wow.InteractWithUnit(IWowUnit.BaseAddress);
+                Bot.Wow.InteractWithUnit(Unit);
             }
         }
     }

@@ -125,7 +125,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.einTyp
             {
                 Bot.Wow.StopClickToMove();
                 Bot.Movement.Reset();
-                Bot.Wow.InteractWithUnit(target.BaseAddress);
+                Bot.Wow.InteractWithUnit(target);
             }
             else
             {
@@ -326,14 +326,14 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.einTyp
                 return false;
             }
 
-            List<IWowUnit> wowUnits = Bot.Objects.WowObjects.OfType<IWowUnit>().Where(e => Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Friendly && Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Neutral).ToList();
+            List<IWowUnit> wowUnits = Bot.Objects.All.OfType<IWowUnit>().Where(e => Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Friendly && Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Neutral).ToList();
             bool newTargetFound = false;
             int targetHealth = (target == null || target.IsDead || target.Health < 1) ? 0 : target.Health;
             bool inCombat = target != null && target.IsInCombat;
             int targetCount = 0;
             foreach (IWowUnit unit in wowUnits)
             {
-                if (IWowUnit.IsValidUnit(unit) && unit != target && !(unit.IsDead || unit.Health < 1 || unit.Auras.Any(e => Bot.Db.GetSpellName(e.SpellId).Contains("Spirit of Redem"))))
+                if (IWowUnit.IsValid(unit) && unit != target && !(unit.IsDead || unit.Health < 1 || unit.Auras.Any(e => Bot.Db.GetSpellName(e.SpellId).Contains("Spirit of Redem"))))
                 {
                     double tmpDistance = Bot.Player.Position.GetDistance(unit.Position);
                     if ((isSneaky && tmpDistance < 100.0) || isSneaky && tmpDistance < 50.0)
@@ -495,8 +495,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.einTyp
                     {
                         if (distanceToTarget > (9 + target.CombatReach))
                         {
-                            // 9 < distance < 24
-                            // run?
+                            // 9 < distance < 24 run?
                             if (energy > 15 && IsReady(Sprint) && IsTargetBleeding())
                             {
                                 CastSpell(Sprint, ref energy, 15, 180, true);
@@ -504,8 +503,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.einTyp
                         }
                         else if (distanceToTarget <= 0.75f * (Player.CombatReach + target.CombatReach))
                         {
-                            // distance <= 9
-                            // close combat
+                            // distance <= 9 close combat
                             if (IsInStealth())
                             {
                                 if (energy > 50 && IsReady(Garrote) && !IsTargetBleeding())
@@ -566,8 +564,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.einTyp
                     }
                     else
                     {
-                        // 24 <= distance < 29
-                        // distance attacks
+                        // 24 <= distance < 29 distance attacks
                         if (Player.IsInCombat)
                         {
                             if (comboCnt > 4 && energy > 35 && IsReady(DeadlyThrow))

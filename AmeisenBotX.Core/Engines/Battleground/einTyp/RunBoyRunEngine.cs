@@ -11,26 +11,40 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
     public class RunBoyRunEngine : IBattlegroundEngine
     {
         private readonly AmeisenBotInterfaces Bot;
+
         private Vector3 baseAlly = new(1539, 1481, 352);
+
         private Vector3 baseHord = new(916, 1434, 346);
+
         private IWowObject enemyFlag;
+
         private ulong EnemyFlagCarrierGuid;
+
         private bool enemyTeamHasFlag = false;
+
         private bool hasFlag = false;
+
         private bool hasStateChanged = true;
+
         private bool isHorde = false;
+
         private IWowObject ownFlag;
+
         private bool ownTeamHasFlag = false;
+
         private ulong TeamFlagCarrierGuid;
 
         public RunBoyRunEngine(AmeisenBotInterfaces bot)
         {
             Bot = bot;
 
-            bot.Wow.Events.Subscribe("CHAT_MSG_BG_SYSTEM_ALLIANCE", OnFlagAlliance);
-            bot.Wow.Events.Subscribe("CHAT_MSG_BG_SYSTEM_HORDE", OnFlagAlliance);
-            bot.Wow.Events.Subscribe("CHAT_MSG_BG_SYSTEM_NEUTRAL", OnFlagAlliance);
-            bot.Wow.Events.Subscribe("UPDATE_BATTLEFIELD_SCORE", OnFlagAlliance);
+            if (bot.Wow.Events != null)
+            {
+                bot.Wow.Events.Subscribe("CHAT_MSG_BG_SYSTEM_ALLIANCE", OnFlagAlliance);
+                bot.Wow.Events.Subscribe("CHAT_MSG_BG_SYSTEM_HORDE", OnFlagAlliance);
+                bot.Wow.Events.Subscribe("CHAT_MSG_BG_SYSTEM_NEUTRAL", OnFlagAlliance);
+                bot.Wow.Events.Subscribe("UPDATE_BATTLEFIELD_SCORE", OnFlagAlliance);
+            }
         }
 
         public string Author => "einTyp";
@@ -85,7 +99,7 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
                     if (IsAtPosition(ownFlag.Position))
                     {
                         // own flag reached, save it!
-                        Bot.Wow.InteractWithObject(ownFlag.BaseAddress);
+                        Bot.Wow.InteractWithObject(ownFlag);
                         hasStateChanged = true;
                     }
                 }
@@ -232,7 +246,7 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
                         {
                             // flag reached, save it!
                             hasStateChanged = true;
-                            Bot.Wow.InteractWithObject(enemyFlag.BaseAddress);
+                            Bot.Wow.InteractWithObject(enemyFlag);
                         }
                     }
                     else
@@ -276,7 +290,7 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
                     {
                         // flag reached, save it!
                         hasStateChanged = true;
-                        Bot.Wow.InteractWithObject(enemyFlag.BaseAddress);
+                        Bot.Wow.InteractWithObject(enemyFlag);
                     }
                 }
                 else
@@ -305,10 +319,10 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
 
         private IWowUnit GetEnemyFlagCarrier()
         {
-            List<IWowUnit> flagCarrierList = Bot.Objects.WowObjects.OfType<IWowUnit>().Where(e =>
-            Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Friendly 
-            && Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Neutral 
-            && !e.IsDead && e.Guid != Bot.Wow.PlayerGuid 
+            List<IWowUnit> flagCarrierList = Bot.Objects.All.OfType<IWowUnit>().Where(e =>
+            Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Friendly
+            && Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Neutral
+            && !e.IsDead && e.Guid != Bot.Wow.PlayerGuid
             && e.Auras != null && e.Auras.Any(en =>
             Bot.Db.GetSpellName(en.SpellId).Contains("Flag") || Bot.Db.GetSpellName(en.SpellId).Contains("flag")))
             .ToList();
@@ -328,7 +342,7 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
             WowGameObjectDisplayId targetFlag = Bot.Player.IsHorde()
                 ? WowGameObjectDisplayId.WsgAllianceFlag : WowGameObjectDisplayId.WsgHordeFlag;
 
-            List<IWowGameobject> flagObjectList = Bot.Objects.WowObjects
+            List<IWowGameobject> flagObjectList = Bot.Objects.All
                 .OfType<IWowGameobject>() // only WowGameobjects
                 .Where(x => Enum.IsDefined(typeof(WowGameObjectDisplayId), x.DisplayId)
                          && targetFlag == (WowGameObjectDisplayId)x.DisplayId).ToList();
@@ -345,10 +359,10 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
 
         private IWowObject GetOwnFlagObject()
         {
-            WowGameObjectDisplayId targetFlag = Bot.Player.IsHorde() 
+            WowGameObjectDisplayId targetFlag = Bot.Player.IsHorde()
                 ? WowGameObjectDisplayId.WsgHordeFlag : WowGameObjectDisplayId.WsgAllianceFlag;
 
-            List<IWowGameobject> flagObjectList = Bot.Objects.WowObjects
+            List<IWowGameobject> flagObjectList = Bot.Objects.All
                 .OfType<IWowGameobject>() // only WowGameobjects
                 .Where(x => Enum.IsDefined(typeof(WowGameObjectDisplayId), x.DisplayId)
                          && targetFlag == (WowGameObjectDisplayId)x.DisplayId).ToList();
@@ -365,7 +379,7 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
 
         private IWowUnit GetTeamFlagCarrier()
         {
-            List<IWowUnit> flagCarrierList = Bot.Objects.WowObjects.OfType<IWowUnit>().Where(e => (Bot.Db.GetReaction(Bot.Player, e) == WowUnitReaction.Friendly || Bot.Db.GetReaction(Bot.Player, e) == WowUnitReaction.Neutral) && !e.IsDead && e.Guid != Bot.Wow.PlayerGuid && e.Auras != null && e.Auras.Any(en => Bot.Db.GetSpellName(en.SpellId).Contains("Flag") || Bot.Db.GetSpellName(en.SpellId).Contains("flag"))).ToList();
+            List<IWowUnit> flagCarrierList = Bot.Objects.All.OfType<IWowUnit>().Where(e => (Bot.Db.GetReaction(Bot.Player, e) == WowUnitReaction.Friendly || Bot.Db.GetReaction(Bot.Player, e) == WowUnitReaction.Neutral) && !e.IsDead && e.Guid != Bot.Wow.PlayerGuid && e.Auras != null && e.Auras.Any(en => Bot.Db.GetSpellName(en.SpellId).Contains("Flag") || Bot.Db.GetSpellName(en.SpellId).Contains("flag"))).ToList();
             if (flagCarrierList.Count > 0)
             {
                 return flagCarrierList[0];
@@ -383,14 +397,14 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
 
         private bool IsEnemyClose()
         {
-            return Bot.Objects.WowObjects.OfType<IWowUnit>() != null && Bot.Objects.WowObjects.OfType<IWowUnit>().Any(e => Bot.Player.Position.GetDistance(e.Position) < 49 && !e.IsDead && !(e.Health < 1) && Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Friendly && Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Neutral);
+            return Bot.Objects.All.OfType<IWowUnit>() != null && Bot.Objects.All.OfType<IWowUnit>().Any(e => Bot.Player.Position.GetDistance(e.Position) < 49 && !e.IsDead && !(e.Health < 1) && Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Friendly && Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Neutral);
         }
 
         private bool IsGateOpen()
         {
             if (Bot.Player.IsAlliance())
             {
-                IWowGameobject obj = Bot.Objects.WowObjects.OfType<IWowGameobject>()
+                IWowGameobject obj = Bot.Objects.All.OfType<IWowGameobject>()
                                     .Where(e => e.GameObjectType == WowGameObjectType.Door && e.DisplayId == 411)
                                     .FirstOrDefault();
 
@@ -398,7 +412,7 @@ namespace AmeisenBotX.Core.Engines.Battleground.einTyp
             }
             else
             {
-                IWowGameobject obj = Bot.Objects.WowObjects.OfType<IWowGameobject>()
+                IWowGameobject obj = Bot.Objects.All.OfType<IWowGameobject>()
                                     .Where(e => e.GameObjectType == WowGameObjectType.Door && e.DisplayId == 850)
                                     .FirstOrDefault();
 

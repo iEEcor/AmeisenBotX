@@ -20,6 +20,8 @@ namespace AmeisenBotX.Core.Managers.Character
 
         List<WowEquipmentSlot> ItemSlotsToSkip { get; set; }
 
+        int LastLevelTrained { get; set; }
+
         int Money { get; }
 
         IEnumerable<WowMount> Mounts { get; }
@@ -29,10 +31,6 @@ namespace AmeisenBotX.Core.Managers.Character
         SpellBook SpellBook { get; }
 
         TalentManager TalentManager { get; }
-
-        int LastLevelTrained { get; set; }
-
-        void ClickToMove(Vector3 pos, ulong guid, WowClickToMoveType clickToMoveType = WowClickToMoveType.Move, float turnSpeed = 20.9f, float distance = 0.5f);
 
         bool HasItemTypeInBag<T>(bool needsToBeUseable = false);
 

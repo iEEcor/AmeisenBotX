@@ -116,7 +116,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.einTyp
             {
                 Bot.Wow.StopClickToMove();
                 Bot.Movement.Reset();
-                Bot.Wow.InteractWithUnit(target.BaseAddress);
+                Bot.Wow.InteractWithUnit(target);
             }
             else
             {
@@ -264,7 +264,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.einTyp
                 return false;
             }
 
-            List<IWowUnit> wowUnits = Bot.Objects.WowObjects.OfType<IWowUnit>().Where(e => Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Friendly && Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Neutral).ToList();
+            List<IWowUnit> wowUnits = Bot.Objects.All.OfType<IWowUnit>().Where(e => Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Friendly && Bot.Db.GetReaction(Bot.Player, e) != WowUnitReaction.Neutral).ToList();
             bool newTargetFound = false;
             int targetHealth = (target == null || target.IsDead || target.Health < 1) ? 2147483647 : target.Health;
             bool inCombat = target != null && target.IsInCombat;
@@ -272,7 +272,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.einTyp
             multipleTargets = false;
             foreach (IWowUnit unit in wowUnits)
             {
-                if (IWowUnit.IsValidUnit(unit) && unit != target && !(unit.IsDead || unit.Health < 1 || unit.Auras.Any(e => Bot.Db.GetSpellName(e.SpellId).Contains("Spirit of Redem"))))
+                if (IWowUnit.IsValid(unit) && unit != target && !(unit.IsDead || unit.Health < 1 || unit.Auras.Any(e => Bot.Db.GetSpellName(e.SpellId).Contains("Spirit of Redem"))))
                 {
                     double tmpDistance = Bot.Player.Position.GetDistance(unit.Position);
                     if (tmpDistance < 100.0 || grinding)
@@ -509,8 +509,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.einTyp
                         }
                         else if (distanceToTarget <= 0.75f * (Player.CombatReach + target.CombatReach))
                         {
-                            // -- close combat --
-                            // Battle Stance
+                            // -- close combat -- Battle Stance
                             if (IsInBerserkerStance && IsReady(NextStance))
                             {
                                 ChangeToStance(BattleStance, out rage);

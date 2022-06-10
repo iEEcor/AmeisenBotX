@@ -226,7 +226,7 @@ namespace AmeisenBotX.Core.Engines.Dungeon
                     if (node.Type == DungeonNodeType.Use
                         || node.Type == DungeonNodeType.Door)
                     {
-                        IWowGameobject nearestGameobject = Bot.Objects.WowObjects.OfType<IWowGameobject>()
+                        IWowGameobject nearestGameobject = Bot.Objects.All.OfType<IWowGameobject>()
                             .OrderBy(e => e.Position.GetDistance(node.Position))
                             .FirstOrDefault();
 
@@ -237,7 +237,7 @@ namespace AmeisenBotX.Core.Engines.Dungeon
                                 Bot.Movement.Reset();
                                 Bot.Wow.StopClickToMove();
 
-                                Bot.Wow.InteractWithObject(nearestGameobject.BaseAddress);
+                                Bot.Wow.InteractWithObject(nearestGameobject);
                             }
 
                             return BtStatus.Ongoing;
@@ -251,7 +251,7 @@ namespace AmeisenBotX.Core.Engines.Dungeon
                     {
                         if (!Bot.Character.Inventory.HasItemByName(node.Extra))
                         {
-                            IWowGameobject nearestGameobject = Bot.Objects.WowObjects.OfType<IWowGameobject>()
+                            IWowGameobject nearestGameobject = Bot.Objects.All.OfType<IWowGameobject>()
                                 .OrderBy(e => e.Position.GetDistance(node.Position))
                                 .FirstOrDefault();
 
@@ -278,7 +278,7 @@ namespace AmeisenBotX.Core.Engines.Dungeon
                                         Bot.Movement.Reset();
                                         Bot.Wow.StopClickToMove();
 
-                                        Bot.Wow.InteractWithObject(nearestGameobject.BaseAddress);
+                                        Bot.Wow.InteractWithObject(nearestGameobject);
                                         Bot.Wow.LootEverything();
                                     }
 
@@ -320,7 +320,10 @@ namespace AmeisenBotX.Core.Engines.Dungeon
                     CurrentNodes.Enqueue(profile.Nodes[i]);
                 }
 
-                Bot.CombatClass.PriorityTargetDisplayIds = profile.PriorityUnits;
+                if (Bot.CombatClass != null)
+                {
+                    Bot.CombatClass.PriorityTargetDisplayIds = profile.PriorityUnits;
+                }
             }
         }
 

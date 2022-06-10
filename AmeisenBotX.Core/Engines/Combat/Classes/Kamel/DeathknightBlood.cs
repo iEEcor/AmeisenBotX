@@ -1,6 +1,6 @@
 ﻿using AmeisenBotX.Common.Utils;
 using AmeisenBotX.Core.Engines.Combat.Helpers.Targets;
-using AmeisenBotX.Core.Engines.Combat.Helpers.Targets.Logics;
+using AmeisenBotX.Core.Engines.Combat.Helpers.Targets.Logics.Dps;
 using AmeisenBotX.Core.Engines.Movement.Enums;
 using AmeisenBotX.Core.Managers.Character.Comparators;
 using AmeisenBotX.Core.Managers.Character.Talents.Objects;
@@ -18,7 +18,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Kamel
         public DeathknightBlood(AmeisenBotInterfaces bot)
         {
             Bot = bot;
-            TargetProvider = new TargetManager(new DpsTargetSelectionLogic(bot), TimeSpan.FromMilliseconds(250));//Heal/Tank/DPS
+            TargetProvider = new TargetManager(new SimpleDpsTargetSelectionLogic(bot), TimeSpan.FromMilliseconds(250));//Heal/Tank/DPS
         }
 
         public string Author => "Kamel";
@@ -69,7 +69,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Kamel
             {
                 Bot.Wow.StopClickToMove();
                 Bot.Movement.Reset();
-                Bot.Wow.InteractWithUnit(target.BaseAddress);
+                Bot.Wow.InteractWithUnit(target);
             }
             else
             {
@@ -80,7 +80,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Kamel
         public void Execute()
         {
             ulong targetGuid = Bot.Wow.TargetGuid;
-            IWowUnit target = Bot.Objects.WowObjects.OfType<IWowUnit>().FirstOrDefault(t => t.Guid == targetGuid);
+            IWowUnit target = Bot.Objects.All.OfType<IWowUnit>().FirstOrDefault(t => t.Guid == targetGuid);
             if (target != null)
             {
                 // make sure we're auto attacking
@@ -94,7 +94,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Kamel
         }
 
         public void Load(Dictionary<string, JsonElement> objects)
-        { 
+        {
             Configureables = objects["Configureables"].ToDyn();
         }
 
@@ -124,7 +124,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Kamel
 
             if (Bot.Objects.Target == null
                 || Bot.Objects.Target.IsDead
-                || !IWowUnit.IsValidUnit(Bot.Objects.Target))
+                || !IWowUnit.IsValid(Bot.Objects.Target))
             {
                 return;
             }
@@ -155,7 +155,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Kamel
                 return;
             }
 
-            List<IWowUnit> unitsNearPlayer = Bot.Objects.WowObjects
+            List<IWowUnit> unitsNearPlayer = Bot.Objects.All
                 .OfType<IWowUnit>()
                 .Where(e => e.Position.GetDistance(Bot.Objects.Player.Position) <= 10)
                 .ToList();
@@ -169,7 +169,7 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Kamel
                 return;
             }
 
-            List<IWowUnit> unitsNearTarget = Bot.Objects.WowObjects
+            List<IWowUnit> unitsNearTarget = Bot.Objects.All
                 .OfType<IWowUnit>()
                 .Where(e => e.Position.GetDistance(target.Position) <= 30)
                 .ToList();

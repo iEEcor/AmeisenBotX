@@ -23,12 +23,6 @@ namespace AmeisenBotX.Wow335a.Offsets
 
         public IntPtr CameraPointer { get; } = new(0xB7436C);
 
-        public IntPtr CollisionM2C { get; } = new(0x7A50CF);
-
-        public IntPtr CollisionM2S { get; } = new(0x7A52EC);
-
-        public IntPtr CollisionWMO { get; } = new(0x7AE7EA);
-
         public IntPtr ClickToMoveAction { get; } = new(0xCA11D8 + 0x1C);
 
         public IntPtr ClickToMoveDistance { get; } = new(0xCA11D8 + 0xC);
@@ -45,7 +39,13 @@ namespace AmeisenBotX.Wow335a.Offsets
 
         public IntPtr ClientConnection { get; } = new(0xC79CE0);
 
-        public IntPtr ClimbAngle{ get; } = new(0x858);
+        public IntPtr ClimbAngle { get; } = new(0x858);
+
+        public IntPtr CollisionM2C { get; } = new(0x7A50CF);
+
+        public IntPtr CollisionM2S { get; } = new(0x7A52EC);
+
+        public IntPtr CollisionWMO { get; } = new(0x7AE7EA);
 
         public IntPtr ComboPoints { get; } = new(0xBD084D);
 
@@ -139,8 +139,6 @@ namespace AmeisenBotX.Wow335a.Offsets
 
         public IntPtr RuneType { get; } = new(0xC24304);
 
-        public IntPtr StaticPlayer { get; } = new(0x00CD87A8);
-
         public IntPtr TargetGuid { get; } = new(0xBD07B0);
 
         public IntPtr TickCount { get; } = new(0xB499A4);
@@ -153,26 +151,25 @@ namespace AmeisenBotX.Wow335a.Offsets
 
         public IntPtr WowObjectType { get; } = new(0x14);
 
-        public IntPtr WowUnitFlyFlags { get; } = new(0x44);
+        public IntPtr WowUnitDbEntry { get; } = new(0x964);
 
-        public IntPtr WowUnitFlyFlagsPointer { get; } = new(0xD8);
+        public IntPtr WowUnitDbEntryName { get; } = new(0x5C);
+
+        public IntPtr WowUnitDbEntryType { get; } = new(0x10);
 
         public IntPtr WowUnitIsAutoAttacking { get; } = new(0xA20);
 
-        public IntPtr WowUnitName1 { get; } = new(0x964);
-
-        public IntPtr WowUnitName2 { get; } = new(0x05C);
-
         public IntPtr WowUnitPosition { get; } = new(0x798);
-
-        public IntPtr WowUnitRotation { get; } = new(0x7A8);
-
-        public IntPtr WowUnitSwimFlags { get; } = new(0xA30);
 
         public IntPtr ZoneId { get; } = new(0xBD080C);
 
         public IntPtr ZoneSubText { get; } = new(0xBD0784);
 
         public IntPtr ZoneText { get; } = new(0xBD0788);
+
+        public void Init(IntPtr mainModuleBase)
+        {
+            // unused, ASLR not enabled
+        }
     }
 }

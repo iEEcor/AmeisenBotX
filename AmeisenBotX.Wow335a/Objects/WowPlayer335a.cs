@@ -1,9 +1,7 @@
 ﻿using AmeisenBotX.Common.Math;
-using AmeisenBotX.Memory;
 using AmeisenBotX.Wow.Objects;
 using AmeisenBotX.Wow.Objects.Enums;
 using AmeisenBotX.Wow.Objects.Raw.SubStructs;
-using AmeisenBotX.Wow.Offsets;
 using AmeisenBotX.Wow335a.Objects.Descriptors;
 using System;
 using System.Collections.Generic;
@@ -15,12 +13,8 @@ namespace AmeisenBotX.Wow335a.Objects
     public class WowPlayer335a : WowUnit335a, IWowPlayer
     {
         private VisibleItemEnchantment[] itemEnchantments;
-        private QuestlogEntry[] questlogEntries;
 
-        public WowPlayer335a(IntPtr baseAddress, IntPtr descriptorAddress) : base(baseAddress, descriptorAddress)
-        {
-            Type = WowObjectType.Player;
-        }
+        private QuestlogEntry[] questlogEntries;
 
         public int ComboPoints { get; set; }
 
@@ -44,7 +38,7 @@ namespace AmeisenBotX.Wow335a.Objects
 
         public double XpPercentage => BotMath.Percentage(Xp, NextLevelXp);
 
-        protected WowPlayerDescriptor RawWowPlayer { get; private set; }
+        protected WowPlayerDescriptor335a RawWowPlayer { get; private set; }
 
         public bool IsAlliance()
         {
@@ -64,37 +58,37 @@ namespace AmeisenBotX.Wow335a.Objects
                 or WowRace.Troll;
         }
 
-        public override string ReadName(IMemoryApi memoryApi, IOffsetList offsetList)
+        public override string ReadName()
         {
-            if (memoryApi.Read(IntPtr.Add(offsetList.NameStore, (int)offsetList.NameMask), out uint nameMask)
-                && memoryApi.Read(IntPtr.Add(offsetList.NameStore, (int)offsetList.NameBase), out uint nameBase))
+            if (Memory.Read(IntPtr.Add(Memory.Offsets.NameStore, (int)Memory.Offsets.NameMask), out uint nameMask)
+                && Memory.Read(IntPtr.Add(Memory.Offsets.NameStore, (int)Memory.Offsets.NameBase), out uint nameBase))
             {
                 uint shortGuid = (uint)Guid & 0xfffffff;
                 uint offset = 12 * (nameMask & shortGuid);
 
-                if (memoryApi.Read(new(nameBase + offset + 8), out uint current)
-                    && memoryApi.Read(new(nameBase + offset), out offset))
+                if (Memory.Read(new(nameBase + offset + 8), out uint current)
+                    && Memory.Read(new(nameBase + offset), out offset))
                 {
                     if ((current & 0x1) == 0x1)
                     {
                         return string.Empty;
                     }
 
-                    memoryApi.Read(new(current), out uint testGuid);
+                    Memory.Read(new(current), out uint testGuid);
 
                     while (testGuid != shortGuid)
                     {
-                        memoryApi.Read(new(current + offset + 4), out current);
+                        Memory.Read(new(current + offset + 4), out current);
 
                         if ((current & 0x1) == 0x1)
                         {
                             return string.Empty;
                         }
 
-                        memoryApi.Read(new(current), out testGuid);
+                        Memory.Read(new(current), out testGuid);
                     }
 
-                    if (memoryApi.ReadString(new(current + (int)offsetList.NameString), Encoding.UTF8, out string name, 16))
+                    if (Memory.ReadString(new(current + (int)Memory.Offsets.NameString), Encoding.UTF8, out string name, 16))
                     {
                         return name;
                     }
@@ -109,11 +103,11 @@ namespace AmeisenBotX.Wow335a.Objects
             return $"Player: {Guid} lvl. {Level}";
         }
 
-        public override void Update(IMemoryApi memoryApi, IOffsetList offsetList)
+        public override void Update()
         {
-            base.Update(memoryApi, offsetList);
+            base.Update();
 
-            if (memoryApi.Read(DescriptorAddress + WowObjectDescriptor.EndOffset + WowUnitDescriptor.EndOffset, out WowPlayerDescriptor obj))
+            if (Memory.Read(DescriptorAddress + WowObjectDescriptor335a.EndOffset + WowUnitDescriptor335a.EndOffset, out WowPlayerDescriptor335a obj))
             {
                 RawWowPlayer = obj;
 
@@ -170,23 +164,23 @@ namespace AmeisenBotX.Wow335a.Objects
                 };
             }
 
-            if (memoryApi.Read(IntPtr.Add(BaseAddress, (int)offsetList.WowUnitSwimFlags), out uint swimFlags))
+            if (Memory.Read(IntPtr.Add(BaseAddress, 0xA30), out uint swimFlags))
             {
                 IsSwimming = (swimFlags & 0x200000) != 0;
             }
 
-            if (memoryApi.Read(IntPtr.Add(BaseAddress, (int)offsetList.WowUnitFlyFlagsPointer), out IntPtr flyFlagsPointer)
-                && memoryApi.Read(IntPtr.Add(flyFlagsPointer, (int)offsetList.WowUnitFlyFlags), out uint flyFlags))
+            if (Memory.Read(IntPtr.Add(BaseAddress, 0xD8), out IntPtr flyFlagsPointer)
+                && Memory.Read(IntPtr.Add(flyFlagsPointer, 0x44), out uint flyFlags))
             {
                 IsFlying = (flyFlags & 0x2000000) != 0;
             }
 
-            if (memoryApi.Read(offsetList.BreathTimer, out int breathTimer))
+            if (Memory.Read(Memory.Offsets.BreathTimer, out int breathTimer))
             {
                 IsUnderwater = breathTimer > 0;
             }
 
-            if (memoryApi.Read(offsetList.ComboPoints, out byte comboPoints))
+            if (Memory.Read(Memory.Offsets.ComboPoints, out byte comboPoints))
             {
                 ComboPoints = comboPoints;
             }

@@ -1,9 +1,6 @@
-﻿using AmeisenBotX.Memory;
-using AmeisenBotX.Wow.Objects;
-using AmeisenBotX.Wow.Objects.Enums;
+﻿using AmeisenBotX.Wow.Objects;
 using AmeisenBotX.Wow.Objects.Raw.Enums;
 using AmeisenBotX.Wow.Objects.Raw.SubStructs;
-using AmeisenBotX.Wow.Offsets;
 using AmeisenBotX.Wow335a.Objects.Descriptors;
 using System;
 using System.Collections.Generic;
@@ -13,11 +10,6 @@ namespace AmeisenBotX.Wow335a.Objects
     [Serializable]
     public class WowItem335a : WowObject335a, IWowItem
     {
-        public WowItem335a(IntPtr baseAddress, IntPtr descriptorAddress) : base(baseAddress, descriptorAddress)
-        {
-            Type = WowObjectType.Item;
-        }
-
         public int Count { get; set; }
 
         public List<ItemEnchantment> ItemEnchantments { get; private set; }
@@ -29,8 +21,12 @@ namespace AmeisenBotX.Wow335a.Objects
             List<string> enchantments = new();
 
             foreach (ItemEnchantment itemEnch in ItemEnchantments)
+            {
                 if (WowEnchantmentHelper.TryLookupEnchantment(itemEnch.Id, out string text))
+                {
                     enchantments.Add(text);
+                }
+            }
 
             return enchantments;
         }
@@ -40,31 +36,31 @@ namespace AmeisenBotX.Wow335a.Objects
             return $"Item: [{Guid}] ({EntryId}) Owner: {Owner} Count: {Count}";
         }
 
-        public override void Update(IMemoryApi memoryApi, IOffsetList offsetList)
+        public override void Update()
         {
-            base.Update(memoryApi, offsetList);
+            base.Update();
 
-            if (!memoryApi.Read(DescriptorAddress + WowObjectDescriptor.EndOffset,
-                out WowItemDescriptor objPtr)) return;
-
-            Count = objPtr.StackCount;
-            Owner = objPtr.Owner;
-
-            ItemEnchantments = new List<ItemEnchantment>
+            if (Memory.Read(DescriptorAddress + WowObjectDescriptor335a.EndOffset, out WowItemDescriptor335a objPtr))
             {
-                objPtr.Enchantment1,
-                objPtr.Enchantment2,
-                objPtr.Enchantment3,
-                objPtr.Enchantment4,
-                objPtr.Enchantment5,
-                objPtr.Enchantment6,
-                objPtr.Enchantment7,
-                objPtr.Enchantment8,
-                objPtr.Enchantment9,
-                objPtr.Enchantment10,
-                objPtr.Enchantment11,
-                objPtr.Enchantment12,
-            };
+                Count = objPtr.StackCount;
+                Owner = objPtr.Owner;
+
+                ItemEnchantments = new List<ItemEnchantment>
+                {
+                    objPtr.Enchantment1,
+                    objPtr.Enchantment2,
+                    objPtr.Enchantment3,
+                    objPtr.Enchantment4,
+                    objPtr.Enchantment5,
+                    objPtr.Enchantment6,
+                    objPtr.Enchantment7,
+                    objPtr.Enchantment8,
+                    objPtr.Enchantment9,
+                    objPtr.Enchantment10,
+                    objPtr.Enchantment11,
+                    objPtr.Enchantment12,
+                };
+            }
         }
     }
 }

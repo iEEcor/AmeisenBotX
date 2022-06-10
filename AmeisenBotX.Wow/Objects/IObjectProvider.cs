@@ -13,6 +13,8 @@ namespace AmeisenBotX.Wow.Objects
         /// </summary>
         event Action<IEnumerable<IWowObject>> OnObjectUpdateComplete;
 
+        IEnumerable<IWowObject> All { get; }
+
         /// <summary>
         /// Returns wow's camera information.
         /// </summary>
@@ -33,7 +35,7 @@ namespace AmeisenBotX.Wow.Objects
 
         WowMapId MapId { get; }
 
-        int ObjectCount { get; set; }
+        int ObjectCount { get; }
 
         IWowUnit Partyleader { get; }
 
@@ -54,8 +56,6 @@ namespace AmeisenBotX.Wow.Objects
         IWowUnit Target { get; }
 
         IWowUnit Vehicle { get; }
-
-        IEnumerable<IWowObject> WowObjects { get; }
 
         int ZoneId { get; }
 

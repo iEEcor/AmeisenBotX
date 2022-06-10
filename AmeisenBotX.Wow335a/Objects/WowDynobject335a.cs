@@ -1,8 +1,5 @@
 ﻿using AmeisenBotX.Common.Math;
-using AmeisenBotX.Memory;
 using AmeisenBotX.Wow.Objects;
-using AmeisenBotX.Wow.Objects.Enums;
-using AmeisenBotX.Wow.Offsets;
 using AmeisenBotX.Wow335a.Objects.Descriptors;
 using System;
 
@@ -11,11 +8,6 @@ namespace AmeisenBotX.Wow335a.Objects
     [Serializable]
     public class WowDynobject335a : WowObject335a, IWowDynobject
     {
-        public WowDynobject335a(IntPtr baseAddress, IntPtr descriptorAddress) : base(baseAddress, descriptorAddress)
-        {
-            Type = WowObjectType.DynamicObject;
-        }
-
         public ulong Caster { get; set; }
 
         public float Radius { get; set; }
@@ -27,12 +19,12 @@ namespace AmeisenBotX.Wow335a.Objects
             return $"DynamicObject: [{Guid}] SpellId: {SpellId} Caster: {Caster} Radius: {Radius}";
         }
 
-        public override void Update(IMemoryApi memoryApi, IOffsetList offsetList)
+        public override void Update()
         {
-            base.Update(memoryApi, offsetList);
+            base.Update();
 
-            if (memoryApi.Read(DescriptorAddress + WowObjectDescriptor.EndOffset, out WowDynobjectDescriptor objPtr)
-                && memoryApi.Read(IntPtr.Add(BaseAddress, (int)offsetList.WowDynobjectPosition), out Vector3 position))
+            if (Memory.Read(DescriptorAddress + WowObjectDescriptor335a.EndOffset, out WowDynobjectDescriptor335a objPtr)
+                && Memory.Read(IntPtr.Add(BaseAddress, (int)Memory.Offsets.WowDynobjectPosition), out Vector3 position))
             {
                 Caster = objPtr.Caster;
                 Radius = objPtr.Radius;

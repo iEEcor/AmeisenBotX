@@ -1,5 +1,8 @@
-﻿using AmeisenBotX.Wow.Objects;
-using AmeisenBotX.Wow.Objects.Enums;
+﻿using AmeisenBotX.Core.Engines.Combat.Helpers.Targets.Priority;
+using AmeisenBotX.Core.Engines.Combat.Helpers.Targets.Validation;
+using AmeisenBotX.Core.Engines.Combat.Helpers.Targets.Validation.Basic;
+using AmeisenBotX.Wow.Objects;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,6 +13,8 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Targets.Logics
         public BasicTargetSelectionLogic(AmeisenBotInterfaces bot)
         {
             Bot = bot;
+            TargetValidator = new(new IsValidAliveTargetValidator());
+            TargetPrioritizer = new();
         }
 
         public IEnumerable<int> BlacklistedTargets { get; set; }
@@ -18,26 +23,15 @@ namespace AmeisenBotX.Core.Engines.Combat.Helpers.Targets.Logics
 
         public IEnumerable<int> PriorityTargets { get; set; }
 
-        public abstract bool SelectTarget(out IEnumerable<IWowUnit> wowUnit);
+        public TargetPriorityManager TargetPrioritizer { get; set; }
 
-        protected bool IsBlacklisted(IWowUnit wowUnit)
-        {
-            return BlacklistedTargets != null && BlacklistedTargets.Contains(wowUnit.DisplayId);
-        }
+        public TargetValidationManager TargetValidator { get; set; }
+
+        public abstract bool SelectTarget(out IEnumerable<IWowUnit> wowUnit);
 
         protected bool IsPriorityTarget(IWowUnit wowUnit)
         {
             return PriorityTargets != null && PriorityTargets.Contains(wowUnit.DisplayId);
-        }
-
-        protected bool IsValidUnit(IWowUnit wowUnit)
-        {
-            return !wowUnit.IsDead
-                && !wowUnit.IsNotAttackable
-                && wowUnit.IsInCombat
-                && !IsBlacklisted(wowUnit)
-                && Bot.Db.GetReaction(wowUnit, Bot.Player) == WowUnitReaction.Hostile
-                && wowUnit.DistanceTo(Bot.Player) < 80.0f;
         }
     }
 }

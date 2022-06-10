@@ -1,12 +1,12 @@
-﻿using System;
+﻿using AmeisenBotX.Core.Managers.Character.Spells.Objects;
+using AmeisenBotX.Logging;
+using AmeisenBotX.Logging.Enums;
+using AmeisenBotX.Wow;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AmeisenBotX.Core.Managers.Character.Spells.Objects;
-using AmeisenBotX.Logging;
-using AmeisenBotX.Logging.Enums;
-using AmeisenBotX.Wow;
 
 namespace AmeisenBotX.Core.Managers.Character.Spells
 {
@@ -15,15 +15,13 @@ namespace AmeisenBotX.Core.Managers.Character.Spells
         public SpellBook(IWowInterface wowInterface)
         {
             Wow = wowInterface;
-
-            Spells = new();
         }
 
         public delegate void SpellBookUpdate();
 
         public event SpellBookUpdate OnSpellBookUpdate;
 
-        public List<Spell> Spells { get; private set; }
+        public IEnumerable<Spell> Spells { get; private set; }
 
         private IWowInterface Wow { get; }
 
@@ -49,10 +47,9 @@ namespace AmeisenBotX.Core.Managers.Character.Spells
 
             try
             {
-                Spells = JsonSerializer.Deserialize<List<Spell>>(rawSpells, new() { AllowTrailingCommas = true, NumberHandling = JsonNumberHandling.AllowReadingFromString })
+                Spells = JsonSerializer.Deserialize<List<Spell>>(rawSpells, new JsonSerializerOptions() { AllowTrailingCommas = true, NumberHandling = JsonNumberHandling.AllowReadingFromString })
                     .OrderBy(e => e.Name)
-                    .ThenByDescending(e => e.Rank)
-                    .ToList();
+                    .ThenByDescending(e => e.Rank);
 
                 OnSpellBookUpdate?.Invoke();
             }

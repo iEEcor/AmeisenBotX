@@ -17,11 +17,11 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
                 && ValidateSpell(Priest335a.PowerWordFortitude, true)
                 && TryCastSpell(Priest335a.PowerWordFortitude, Bot.Player.Guid)));
             MyAuraManager.Jobs.Add(new KeepActiveAuraJob(bot.Db, Priest335a.PowerWordShield, () =>
-                Bot.Player.Auras.All(e => Bot.Db.GetSpellName(e.SpellId) != "Weakened Soul") 
+                Bot.Player.Auras.All(e => Bot.Db.GetSpellName(e.SpellId) != "Weakened Soul")
                 && Bot.Player.ManaPercentage > 60.0
                 && ValidateSpell(Priest335a.PowerWordShield, true)
                 && TryCastSpell(Priest335a.PowerWordShield, Bot.Player.Guid)));
-            MyAuraManager.Jobs.Add(new KeepActiveAuraJob(bot.Db, Priest335a.InnerFire, () =>  
+            MyAuraManager.Jobs.Add(new KeepActiveAuraJob(bot.Db, Priest335a.InnerFire, () =>
                 Bot.Player.ManaPercentage > 60.0
                 && ValidateSpell(Priest335a.InnerFire, true)
                 && TryCastSpell(Priest335a.InnerFire, Bot.Player.Guid)));
@@ -37,10 +37,12 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
                 && TryCastSpell(Priest335a.ShadowWordPain, Bot.Wow.TargetGuid)));
         }
 
-        public override string Version => "1.0";
         public override string Description => "CombatClass for the Shadow Priest spec.";
+
         public override string DisplayName => "Shadow Priest";
+
         public override bool HandlesMovement => false;
+
         public override bool IsMelee => false;
 
         public override IItemComparator ItemComparator { get; set; } =
@@ -51,7 +53,6 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
                 WowWeaponType.SwordTwoHand
             });
 
-        public override WowClass WowClass => WowClass.Priest;
         public override WowRole Role => WowRole.Dps;
 
         public override TalentTree Talents { get; } = new()
@@ -62,13 +63,18 @@ namespace AmeisenBotX.Core.Engines.Combat.Classes.Bia10
         };
 
         public override bool UseAutoAttacks => true;
+
+        public override string Version => "1.0";
+
         public override bool WalkBehindEnemy => false;
+
+        public override WowClass WowClass => WowClass.Priest;
 
         public override void Execute()
         {
             base.Execute();
 
-            var spellName = SelectSpell(out var targetGuid);
+            string spellName = SelectSpell(out ulong targetGuid);
             TryCastSpell(spellName, targetGuid);
         }
 

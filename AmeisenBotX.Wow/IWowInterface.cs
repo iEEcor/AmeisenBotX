@@ -1,15 +1,16 @@
 ﻿using AmeisenBotX.Common.Math;
 using AmeisenBotX.Wow.Events;
 using AmeisenBotX.Wow.Objects;
+using AmeisenBotX.Wow.Objects.Constants;
 using AmeisenBotX.Wow.Objects.Enums;
-using AmeisenBotX.Wow.Offsets;
 using System;
 using System.Collections.Generic;
 
 namespace AmeisenBotX.Wow
 {
     /// <summary>
-    /// Interface to the wow game. All functions that interact with the game should be reachable via this interface.
+    /// Interface to the wow game. All functions that interact with the game should be reachable via
+    /// this interface.
     /// </summary>
     public interface IWowInterface
     {
@@ -20,7 +21,7 @@ namespace AmeisenBotX.Wow
 
         /// <summary>
         /// Gets fired when a new static popup appears ingame.
-        /// Format: {ID}:{POPUPTYPE};... => 1:DELETE_ITEM;2:SAMPLE_POPUP;...
+        /// Format: {ID}:{POPUPTYPE};... 1:DELETE_ITEM;2:SAMPLE_POPUP;...
         /// </summary>
         event Action<string> OnStaticPopup;
 
@@ -30,9 +31,8 @@ namespace AmeisenBotX.Wow
         IEventManager Events { get; }
 
         /// <summary>
-        /// Used for the HookCall display in the bots main window.
-        /// Use this to display cost intensive calls to the user.
-        /// The name Hookcall originates from EndScene hook calls.
+        /// Used for the HookCall display in the bots main window. Use this to display cost
+        /// intensive calls to the user. The name Hookcall originates from EndScene hook calls.
         /// </summary>
         int HookCallCount { get; }
 
@@ -47,6 +47,11 @@ namespace AmeisenBotX.Wow
         public ulong LastTargetGuid => ObjectProvider.LastTarget != null ? ObjectProvider.LastTarget.Guid : 0ul;
 
         /// <summary>
+        /// Use this to interact with the wows memory.
+        /// </summary>
+        WowMemoryApi Memory { get; }
+
+        /// <summary>
         /// Use this to interact with wowobjects, units, players and more.
         /// </summary>
         IObjectProvider ObjectProvider { get; }
@@ -54,12 +59,7 @@ namespace AmeisenBotX.Wow
         /// <summary>
         /// Shortcut to all wow objects.
         /// </summary>
-        IEnumerable<IWowObject> Objects => ObjectProvider.WowObjects;
-
-        /// <summary>
-        /// Currently used offset list.
-        /// </summary>
-        IOffsetList Offsets { get; }
+        IEnumerable<IWowObject> Objects => ObjectProvider.All;
 
         /// <summary>
         /// Shortcut to get the current partyleaders guid.
@@ -80,6 +80,11 @@ namespace AmeisenBotX.Wow
         /// Shortcut to get the current targets guid.
         /// </summary>
         public ulong TargetGuid => ObjectProvider.Target != null ? ObjectProvider.Target.Guid : 0ul;
+
+        /// <summary>
+        /// Get the current version of wow.
+        /// </summary>
+        WowVersion WowVersion { get; }
 
         void AbandonQuestsNotIn(IEnumerable<string> enumerable);
 
@@ -114,6 +119,8 @@ namespace AmeisenBotX.Wow
 
         void ClickOnTrainButton();
 
+        void ClickToMove(Vector3 pos, ulong guid, WowClickToMoveType clickToMoveType = WowClickToMoveType.Move, float turnSpeed = 20.9f, float distance = WowClickToMoveDistance.Move);
+
         /// <summary>
         /// Performs a click on the given ui element.
         /// </summary>
@@ -137,13 +144,11 @@ namespace AmeisenBotX.Wow
         /// </summary>
         void Dispose();
 
-        void EnableClickToMove();
-
         void EquipItem(string itemName, int slot = -1);
 
         bool ExecuteLuaAndRead((string, string) commandVariableCombo, out string result);
 
-        void FacePosition(IntPtr playerBase, Vector3 playerPosition, Vector3 position);
+        void FacePosition(IntPtr playerBase, Vector3 playerPosition, Vector3 position, bool smooth = false);
 
         IEnumerable<int> GetCompletedQuests();
 
@@ -195,9 +200,9 @@ namespace AmeisenBotX.Wow
 
         int GetUnspentTalentPoints();
 
-        void InteractWithObject(IntPtr objectBase);
+        void InteractWithObject(IWowObject obj);
 
-        void InteractWithUnit(IntPtr unitBase);
+        void InteractWithUnit(IWowUnit unit);
 
         /// <summary>
         /// Gets the state of autoloot.
@@ -254,7 +259,7 @@ namespace AmeisenBotX.Wow
 
         void SendChatMessage(string msg);
 
-        void SetFacing(IntPtr playerBase, float angle);
+        void SetFacing(IntPtr playerBase, float angle, bool smooth = false);
 
         void SetLfgRole(WowRole wowRole);
 
@@ -267,10 +272,9 @@ namespace AmeisenBotX.Wow
         bool Setup();
 
         /// <summary>
-        /// Use this to diable the is world loaded check that is used to
-        /// prevent the execution of assembly code during loading screens.
-        /// Used to disable the check in the login process as the world
-        /// is not loaded in the main menu.
+        /// Use this to diable the is world loaded check that is used to prevent the execution of
+        /// assembly code during loading screens. Used to disable the check in the login process as
+        /// the world is not loaded in the main menu.
         /// </summary>
         /// <param name="enabled">Status of the check (true = on | false = off)</param>
         void SetWorldLoadedCheck(bool enabled);
@@ -282,8 +286,7 @@ namespace AmeisenBotX.Wow
         void StopClickToMove();
 
         /// <summary>
-        /// Poll this on a regular basis to keep the stuff up to date.
-        /// Updates objects, gameinfo and more.
+        /// Poll this on a regular basis to keep the stuff up to date. Updates objects, gameinfo and more.
         /// </summary>
         void Tick();
 

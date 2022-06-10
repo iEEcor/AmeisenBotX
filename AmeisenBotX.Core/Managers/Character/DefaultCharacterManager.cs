@@ -8,10 +8,8 @@ using AmeisenBotX.Core.Managers.Character.Spells;
 using AmeisenBotX.Core.Managers.Character.Talents;
 using AmeisenBotX.Logging;
 using AmeisenBotX.Logging.Enums;
-using AmeisenBotX.Memory;
 using AmeisenBotX.Wow;
 using AmeisenBotX.Wow.Objects;
-using AmeisenBotX.Wow.Objects.Constants;
 using AmeisenBotX.Wow.Objects.Enums;
 using System;
 using System.Collections;
@@ -23,20 +21,19 @@ namespace AmeisenBotX.Core.Managers.Character
 {
     public class DefaultCharacterManager : ICharacterManager
     {
-        public DefaultCharacterManager(IWowInterface wowInterface, IMemoryApi memoryApi)
+        public DefaultCharacterManager(IWowInterface wowInterface, WowMemoryApi memory, AmeisenBotConfig config)
         {
             Wow = wowInterface;
-            MemoryApi = memoryApi;
+            MemoryApi = memory;
 
-            Inventory = new CharacterInventory(Wow);
-            Equipment = new CharacterEquipment(Wow);
-            SpellBook = new SpellBook(Wow);
-            TalentManager = new TalentManager(Wow);
+            Inventory = new(Wow, config);
+            Equipment = new(Wow);
+            SpellBook = new(Wow);
+            TalentManager = new(Wow);
             LastLevelTrained = 0;
             ItemComparator = new ItemLevelComparator();
-            Skills = new Dictionary<string, (int, int)>();
-
-            ItemSlotsToSkip = new List<WowEquipmentSlot>();
+            Skills = new();
+            ItemSlotsToSkip = new();
         }
 
         public CharacterEquipment Equipment { get; }
@@ -59,31 +56,9 @@ namespace AmeisenBotX.Core.Managers.Character
 
         public TalentManager TalentManager { get; }
 
-        private IMemoryApi MemoryApi { get; }
+        private WowMemoryApi MemoryApi { get; }
 
         private IWowInterface Wow { get; }
-
-        public void ClickToMove(Vector3 pos, ulong guid,
-            WowClickToMoveType clickToMoveType = WowClickToMoveType.Move,
-            float turnSpeed = 20.9f, // where is this magic number from?
-            float distance = WowClickToMoveDistance.Move)
-        {
-            if (float.IsInfinity(pos.X) || float.IsNaN(pos.X) || MathF.Abs(pos.X) > 17066.6656
-                || float.IsInfinity(pos.Y) || float.IsNaN(pos.Y) || MathF.Abs(pos.Y) > 17066.6656
-                || float.IsInfinity(pos.Z) || float.IsNaN(pos.Z) || MathF.Abs(pos.Z) > 17066.6656)
-            {
-                return;
-            }
-
-            MemoryApi.Write(Wow.Offsets.ClickToMoveTurnSpeed, turnSpeed);
-            MemoryApi.Write(Wow.Offsets.ClickToMoveDistance, distance);
-
-            if (guid > 0)
-                MemoryApi.Write(Wow.Offsets.ClickToMoveGuid, guid);
-
-            MemoryApi.Write(Wow.Offsets.ClickToMoveAction, clickToMoveType);
-            MemoryApi.Write(Wow.Offsets.ClickToMoveX, pos);
-        }
 
         public Dictionary<int, int> GetConsumables()
         {
@@ -101,33 +76,24 @@ namespace AmeisenBotX.Core.Managers.Character
         {
             return item?.ArmorType switch
             {
-                WowArmorType.Plate => Skills.Any(e => 
-                    e.Key.Equals("Plate Mail", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Plattenpanzer", StringComparison.OrdinalIgnoreCase)),
-                WowArmorType.Mail => Skills.Any(e => 
-                    e.Key.Equals("Mail", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Panzer", StringComparison.OrdinalIgnoreCase)),
+                WowArmorType.Plate => Skills.Any(e =>
+                    e.Key.Equals("Plate Mail", StringComparison.OrdinalIgnoreCase)),
+                WowArmorType.Mail => Skills.Any(e =>
+                    e.Key.Equals("Mail", StringComparison.OrdinalIgnoreCase)),
                 WowArmorType.Leather => Skills.Any(e =>
-                    e.Key.Equals("Leather", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Leder", StringComparison.OrdinalIgnoreCase)),
-                WowArmorType.Cloth => Skills.Any(e => 
-                    e.Key.Equals("Cloth", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Stoff", StringComparison.OrdinalIgnoreCase)),
-                WowArmorType.Totem => Skills.Any(e => 
-                    e.Key.Equals("Totem", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Totem", StringComparison.OrdinalIgnoreCase)),
-                WowArmorType.Libram => Skills.Any(e => 
-                    e.Key.Equals("Libram", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Buchband", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Leather", StringComparison.OrdinalIgnoreCase)),
+                WowArmorType.Cloth => Skills.Any(e =>
+                    e.Key.Equals("Cloth", StringComparison.OrdinalIgnoreCase)),
+                WowArmorType.Totem => Skills.Any(e =>
+                    e.Key.Equals("Totem", StringComparison.OrdinalIgnoreCase)),
+                WowArmorType.Libram => Skills.Any(e =>
+                    e.Key.Equals("Libram", StringComparison.OrdinalIgnoreCase)),
                 WowArmorType.Idol => Skills.Any(e =>
-                    e.Key.Equals("Idol", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Götzen", StringComparison.OrdinalIgnoreCase)),
-                WowArmorType.Sigil => Skills.Any(e => 
-                    e.Key.Equals("Sigil", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Siegel", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Idol", StringComparison.OrdinalIgnoreCase)),
+                WowArmorType.Sigil => Skills.Any(e =>
+                    e.Key.Equals("Sigil", StringComparison.OrdinalIgnoreCase)),
                 WowArmorType.Shield => Skills.Any(e =>
-                    e.Key.Equals("Shield", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Schild", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Shield", StringComparison.OrdinalIgnoreCase)),
                 WowArmorType.Misc => true,
                 _ => false,
             };
@@ -135,7 +101,7 @@ namespace AmeisenBotX.Core.Managers.Character
 
         public bool IsAbleToUseItem(IWowInventoryItem item)
         {
-            return string.Equals(item.Type, "Armor", StringComparison.OrdinalIgnoreCase) && IsAbleToUseArmor((WowArmor)item) 
+            return string.Equals(item.Type, "Armor", StringComparison.OrdinalIgnoreCase) && IsAbleToUseArmor((WowArmor)item)
                    || string.Equals(item.Type, "Weapon", StringComparison.OrdinalIgnoreCase) && IsAbleToUseWeapon((WowWeapon)item);
         }
 
@@ -143,51 +109,36 @@ namespace AmeisenBotX.Core.Managers.Character
         {
             return item?.WeaponType switch
             {
-                WowWeaponType.Bow => Skills.Any(e => 
-                    e.Key.Equals("Bows", StringComparison.OrdinalIgnoreCase) 
-                    || e.Key.Equals("Bogen", StringComparison.OrdinalIgnoreCase)),
+                WowWeaponType.Bow => Skills.Any(e =>
+                    e.Key.Equals("Bows", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.Crossbow => Skills.Any(e =>
-                    e.Key.Equals("Crossbows", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Armbrüste", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Crossbows", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.Gun => Skills.Any(e =>
-                    e.Key.Equals("Guns", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Schusswaffen", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Guns", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.Wand => Skills.Any(e =>
-                    e.Key.Equals("Wands", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Zauberstäbe", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Wands", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.Thrown => Skills.Any(e =>
-                    e.Key.Equals("Thrown", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Wurfwaffe", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Thrown", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.Axe => Skills.Any(e =>
-                    e.Key.Equals("Axes", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Einhandäxte", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Axes", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.AxeTwoHand => Skills.Any(e =>
-                    e.Key.Equals("Two-Handed Axes", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Zweihandäxte", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Two-Handed Axes", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.Mace => Skills.Any(e =>
-                    e.Key.Equals("Maces", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Einhandstreitkolben", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Maces", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.MaceTwoHand => Skills.Any(e =>
-                    e.Key.Equals("Two-Handed Maces", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Zweihandstreitkolben", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Two-Handed Maces", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.Sword => Skills.Any(e =>
-                    e.Key.Equals("Swords", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Einhandschwerter", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Swords", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.SwordTwoHand => Skills.Any(e =>
-                    e.Key.Equals("Two-Handed Swords", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Zweihandschwerter", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Two-Handed Swords", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.Dagger => Skills.Any(e =>
-                    e.Key.Equals("Daggers", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Dolche", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Daggers", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.Fist => Skills.Any(e =>
-                    e.Key.Equals("Fist Weapons", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Faustwaffen", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Fist Weapons", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.Polearm => Skills.Any(e =>
-                    e.Key.Equals("Polearms", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Stangenwaffen", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Polearms", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.Staff => Skills.Any(e =>
-                    e.Key.Equals("Staves", StringComparison.OrdinalIgnoreCase)
-                    || e.Key.Equals("Stäbe", StringComparison.OrdinalIgnoreCase)),
+                    e.Key.Equals("Staves", StringComparison.OrdinalIgnoreCase)),
                 WowWeaponType.FishingPole => true,
                 WowWeaponType.Misc => true,
                 _ => false,
@@ -199,17 +150,27 @@ namespace AmeisenBotX.Core.Managers.Character
             itemToReplace = null;
 
             if (item == null || ItemComparator.IsBlacklistedItem(item))
+            {
                 return false;
+            }
 
-            if (!IsAbleToUseItem(item)) return false;
-            if (!GetItemsByEquipLocation(item.EquipLocation, out List<IWowInventoryItem> matchedItems, out _))
+            if (!IsAbleToUseItem(item))
+            {
                 return false;
+            }
+
+            if (!GetItemsByEquipLocation(item.EquipLocation, out List<IWowInventoryItem> matchedItems, out _))
+            {
+                return false;
+            }
 
             // if we don't have an item in the slot or if we only have 3 of 4 bags
             if (matchedItems.Count == 0)
+            {
                 return true;
+            }
 
-            foreach (var inventoryItem in matchedItems
+            foreach (IWowInventoryItem inventoryItem in matchedItems
                 .Where(invItem => invItem != null && item.Id != invItem.Id && ItemComparator.IsBetter(invItem, item)))
             {
                 itemToReplace = inventoryItem;
@@ -227,7 +188,7 @@ namespace AmeisenBotX.Core.Managers.Character
 
         public void MoveToPosition(Vector3 pos, float turnSpeed = 20.9f, float distance = 0.1f)
         {
-            ClickToMove(pos, 0, WowClickToMoveType.Move, turnSpeed, distance);
+            Wow.ClickToMove(pos, 0, WowClickToMoveType.Move, turnSpeed, distance);
         }
 
         public void UpdateAll()
@@ -246,16 +207,22 @@ namespace AmeisenBotX.Core.Managers.Character
 
         public void UpdateBags()
         {
-            IEnumerable<IWowInventoryItem> container = Inventory.Items.Where(item => 
+            IEnumerable<IWowInventoryItem> container = Inventory.Items.Where(item =>
                     item.Type.Equals("container", StringComparison.CurrentCultureIgnoreCase))
                 .ToList();
 
-            if (!container.Any()) return;
+            if (!container.Any())
+            {
+                return;
+            }
 
             for (int slotIndex = 20; slotIndex <= 23; ++slotIndex)
             {
                 if (Equipment.Items.Any(kvp =>
-                    kvp.Key == (WowEquipmentSlot)slotIndex)) continue;
+                    kvp.Key == (WowEquipmentSlot)slotIndex))
+                {
+                    continue;
+                }
 
                 Wow.EquipItem(container.First().Name);
                 break;
@@ -266,11 +233,14 @@ namespace AmeisenBotX.Core.Managers.Character
         {
             IList equipmentSlots = Enum.GetValues(typeof(WowEquipmentSlot));
 
-            foreach (var equipmentSlot in equipmentSlots)
+            foreach (object equipmentSlot in equipmentSlots)
             {
                 WowEquipmentSlot slot = (WowEquipmentSlot)equipmentSlot;
 
-                if (ItemSlotsToSkip.Contains(slot)) continue;
+                if (ItemSlotsToSkip.Contains(slot))
+                {
+                    continue;
+                }
 
                 if (slot == WowEquipmentSlot.INVSLOT_OFFHAND
                     && Equipment.Items.TryGetValue(WowEquipmentSlot.INVSLOT_MAINHAND, out IWowInventoryItem mainHandItem)
@@ -279,13 +249,16 @@ namespace AmeisenBotX.Core.Managers.Character
                     continue;
                 }
 
-                IEnumerable<IWowInventoryItem> itemsLikeEquipped = Inventory.Items.Where(e => 
+                IEnumerable<IWowInventoryItem> itemsLikeEquipped = Inventory.Items.Where(e =>
                         !string.IsNullOrWhiteSpace(e.EquipLocation) && SlotToEquipLocation((int)slot)
                     .Contains(e.EquipLocation, StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(e => e.ItemLevel)
                     .ToList();
 
-                if (!itemsLikeEquipped.Any()) continue;
+                if (!itemsLikeEquipped.Any())
+                {
+                    continue;
+                }
 
                 if (Equipment.Items.TryGetValue(slot, out IWowInventoryItem equippedItem))
                 {
@@ -293,7 +266,10 @@ namespace AmeisenBotX.Core.Managers.Character
                     {
                         IWowInventoryItem item = itemsLikeEquipped.ElementAt(f);
 
-                        if (!IsItemAnImprovement(item, out IWowInventoryItem itemToReplace)) continue;
+                        if (!IsItemAnImprovement(item, out IWowInventoryItem itemToReplace))
+                        {
+                            continue;
+                        }
 
                         AmeisenLogger.I.Log("Equipment", $"Replacing \"{itemToReplace}\" with \"{item}\"", LogLevel.Verbose);
                         Wow.EquipItem(item.Name);
@@ -308,7 +284,10 @@ namespace AmeisenBotX.Core.Managers.Character
                     if ((!string.Equals(itemToEquip.Type, "Armor", StringComparison.OrdinalIgnoreCase) ||
                          !IsAbleToUseArmor((WowArmor)itemToEquip)) &&
                         (!string.Equals(itemToEquip.Type, "Weapon", StringComparison.OrdinalIgnoreCase) ||
-                         !IsAbleToUseWeapon((WowWeapon)itemToEquip))) continue;
+                         !IsAbleToUseWeapon((WowWeapon)itemToEquip)))
+                    {
+                        continue;
+                    }
 
                     AmeisenLogger.I.Log("Equipment", $"Equipping \"{itemToEquip}\"", LogLevel.Verbose);
                     Wow.EquipItem(itemToEquip.Name);
@@ -402,7 +381,9 @@ namespace AmeisenBotX.Core.Managers.Character
         private void TryAddItem(WowEquipmentSlot slot, List<IWowInventoryItem> matchedItems)
         {
             if (Equipment.Items.TryGetValue(slot, out IWowInventoryItem ammoItem))
+            {
                 matchedItems.Add(ammoItem);
+            }
         }
 
         private void TryAddRings(List<IWowInventoryItem> matchedItems, ref int expectedItemCount)
